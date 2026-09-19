@@ -127,4 +127,3 @@ as demais páginas mantêm o visual oliva/terracota original.
    (`npx @next/codemod@canary middleware-to-proxy .` em cada projeto). Ainda funciona.
 5. O rate limit de login é em memória (uma instância). Se o backend escalar
    para várias instâncias, troque por um contador compartilhado (Redis/Upstash).
-# granja3irm-os
