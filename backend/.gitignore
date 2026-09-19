@@ -1,0 +1,13 @@
+# Dependências e build
+node_modules
+.next/
+out/
+
+# Variáveis de ambiente (segredos) — só o .env.example vai para o git
+.env
+.env.*
+!.env.example
+
+# Sistema
+.DS_Store
+*.log

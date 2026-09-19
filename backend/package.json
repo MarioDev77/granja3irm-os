@@ -1,0 +1,26 @@
+{
+  "name": "granja-oliveira-backend",
+  "version": "0.2.0",
+  "private": true,
+  "description": "API do sistema de gestão Granja Oliveira (Next.js route handlers + node-postgres + NextAuth).",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start",
+    "db:migrate": "node scripts/migrate.js",
+    "seed": "node sql/seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "next": "16.3.3",
+    "next-auth": "^4.24.15",
+    "pg": "^8.13.0",
+    "qrcode": "^1.5.4",
+    "react": "^19",
+    "react-dom": "^19",
+    "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
