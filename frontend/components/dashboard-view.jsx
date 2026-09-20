@@ -16,14 +16,14 @@ function fmtBRL(value) {
 function MetricCard({ title, value, trend, icon: Icon, tone = 'default', detail }) {
   const trendUp = typeof trend === 'number' && trend >= 0;
   return (
-    <Card className="border-white/10 bg-zinc-900/70 shadow-none transition-shadow hover:shadow-md">
+    <Card className="border-ink-300/40 bg-white shadow-sm transition-shadow hover:shadow-md">
       <CardContent className="flex items-start justify-between p-5">
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
           <div className="flex items-end gap-2">
-            <span className="text-2xl font-semibold tracking-tight text-zinc-100">{value}</span>
+            <span className="text-2xl font-semibold tracking-tight text-ink-900">{value}</span>
             {typeof trend === 'number' && (
-              <span className={`mb-1 flex items-center text-xs font-medium ${trendUp ? 'text-emerald-400' : 'text-red-400'}`}>
+              <span className={`mb-1 flex items-center text-xs font-medium ${trendUp ? 'text-emerald-600' : 'text-red-600'}`}>
                 {trendUp ? <ArrowUpRight className="mr-0.5 size-3" /> : <ArrowDownRight className="mr-0.5 size-3" />}
                 {Math.abs(trend).toFixed(1)}%
               </span>
@@ -33,7 +33,7 @@ function MetricCard({ title, value, trend, icon: Icon, tone = 'default', detail 
         </div>
         <div
           className={`flex size-10 items-center justify-center rounded-xl ${
-            tone === 'red' ? 'bg-red-500/15 text-red-400' : 'bg-zinc-800 text-zinc-200'
+            tone === 'red' ? 'bg-red-100 text-red-600' : 'bg-ink-100 text-ink-700'
           }`}
         >
           <Icon className="size-5" />
@@ -49,23 +49,23 @@ export default function DashboardView({ data, accessDenied, userName }) {
   return (
     <div>
       {accessDenied && (
-        <div className="mb-5 rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">
+        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           Seu perfil não tem permissão para acessar a página solicitada.
         </div>
       )}
 
       <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-zinc-400">
-            <span className="size-2 rounded-full bg-white" /> VISÃO GERAL DA GRANJA
+          <div className="mb-2 flex items-center gap-2 text-xs font-medium text-ink-500">
+            <span className="size-2 rounded-full bg-olive-600" /> VISÃO GERAL DA GRANJA
           </div>
-          <h2 className="text-2xl font-semibold tracking-tight">Dashboard principal</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-ink-900">Dashboard principal</h2>
           <p className="mt-1 text-sm text-muted-foreground">Acompanhe os principais indicadores da sua operação.</p>
         </div>
       </div>
 
       {!data.hasAnyProductionData && (
-        <div className="mb-6 rounded-lg border border-white/10 bg-zinc-900/70 p-5 text-sm text-zinc-300">
+        <div className="mb-6 rounded-lg border border-ink-300/40 bg-white p-5 text-sm text-ink-700">
           Não há dados registrados ainda. Cadastre galpões, lotes e aves para que os indicadores comecem a aparecer
           aqui automaticamente.
         </div>
@@ -117,7 +117,7 @@ export default function DashboardView({ data, accessDenied, userName }) {
       )}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.6fr_1fr]">
-        <Card className="border-white/10 bg-zinc-900/70 shadow-none">
+        <Card className="border-ink-300/40 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
               <CardTitle className="text-base">Evolução da operação (7 dias)</CardTitle>
@@ -142,12 +142,12 @@ export default function DashboardView({ data, accessDenied, userName }) {
                 </AreaChart>
               </ChartContainer>
             ) : (
-              <p className="py-16 text-center text-sm text-zinc-500">Sem produção registrada nos últimos 7 dias.</p>
+              <p className="py-16 text-center text-sm text-ink-500">Sem produção registrada nos últimos 7 dias.</p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-zinc-900/70 shadow-none">
+        <Card className="border-ink-300/40 bg-white shadow-sm">
           <CardHeader>
             <CardTitle className="text-base">Consumo de ração</CardTitle>
             <p className="text-xs text-muted-foreground">Quilos consumidos por dia</p>
@@ -164,14 +164,14 @@ export default function DashboardView({ data, accessDenied, userName }) {
                 </BarChart>
               </ChartContainer>
             ) : (
-              <p className="py-16 text-center text-sm text-zinc-500">Sem consumo registrado nos últimos 7 dias.</p>
+              <p className="py-16 text-center text-sm text-ink-500">Sem consumo registrado nos últimos 7 dias.</p>
             )}
           </CardContent>
         </Card>
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <Card className="border-white/10 bg-zinc-900/70 shadow-none">
+        <Card className="border-ink-300/40 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-base">Lotes em destaque</CardTitle>
@@ -180,12 +180,12 @@ export default function DashboardView({ data, accessDenied, userName }) {
           </CardHeader>
           <CardContent className="p-0">
             {data.topFlocks.length === 0 ? (
-              <p className="px-6 py-10 text-center text-sm text-zinc-500">Nenhum lote ativo cadastrado.</p>
+              <p className="px-6 py-10 text-center text-sm text-ink-500">Nenhum lote ativo cadastrado.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-y border-white/10 bg-white/[0.03] text-left text-xs text-muted-foreground">
+                    <tr className="border-y border-ink-200 bg-ink-100/60 text-left text-xs text-ink-500">
                       <th className="px-6 py-3 font-medium">Lote</th>
                       <th className="px-4 py-3 font-medium">Aves ativas</th>
                       <th className="px-4 py-3 font-medium">Idade</th>
@@ -194,9 +194,9 @@ export default function DashboardView({ data, accessDenied, userName }) {
                   </thead>
                   <tbody>
                     {data.topFlocks.map((f) => (
-                      <tr key={f.id} className="border-b border-white/10 last:border-0">
+                      <tr key={f.id} className="border-b border-ink-200 last:border-0">
                         <td className="px-6 py-3.5 font-medium">
-                          {f.name} <span className="text-zinc-500">({f.code})</span>
+                          {f.name} <span className="text-ink-500">({f.code})</span>
                         </td>
                         <td className="px-4 py-3.5 text-muted-foreground">{f.activeBirds}</td>
                         <td className="px-4 py-3.5 text-muted-foreground">{f.ageWeeks} sem.</td>
@@ -212,24 +212,24 @@ export default function DashboardView({ data, accessDenied, userName }) {
           </CardContent>
         </Card>
 
-        <Card className="border-white/10 bg-zinc-900/70 shadow-none">
+        <Card className="border-ink-300/40 bg-white shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-base">Alertas importantes</CardTitle>
               <p className="mt-1 text-xs text-muted-foreground">Itens que precisam da sua atenção</p>
             </div>
             {data.unreadAlerts > 0 && (
-              <Badge variant="outline" className="border-red-500/30 text-red-400">
+              <Badge variant="outline" className="border-red-300 text-red-600">
                 {data.unreadAlerts} alerta{data.unreadAlerts > 1 ? 's' : ''}
               </Badge>
             )}
           </CardHeader>
           <CardContent className="flex flex-col gap-2.5">
             {data.recentAlerts.length === 0 ? (
-              <p className="py-6 text-center text-sm text-zinc-500">Nenhum alerta pendente.</p>
+              <p className="py-6 text-center text-sm text-ink-500">Nenhum alerta pendente.</p>
             ) : (
               data.recentAlerts.map((a) => (
-                <div key={a.id} className="flex items-center gap-3 rounded-lg border border-white/10 p-3">
+                <div key={a.id} className="flex items-center gap-3 rounded-lg border border-ink-200 p-3">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-red-500/15 text-red-400">
                     <AlertTriangle className="size-4" />
                   </div>
@@ -245,7 +245,7 @@ export default function DashboardView({ data, accessDenied, userName }) {
       </div>
 
       {data.insights.length > 0 && (
-        <div className="mt-6 flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-zinc-300">
+        <div className="mt-6 flex items-start gap-2 rounded-xl border border-ink-300/40 bg-olive-50 px-4 py-3 text-sm text-ink-700">
           <Sparkles className="mt-0.5 size-4 shrink-0" />
           <div className="space-y-1">
             {data.insights.map((insight, i) => (
