@@ -256,7 +256,16 @@ export default function AppShell({ user, children }) {
           </div>
         )}
 
-        <main className="mx-auto max-w-[1600px] p-5 lg:p-8">{children}</main>
+        {/* As telas internas (Aves, Lotes, Financeiro etc.) usam a paleta
+            "ink"/"olive" herdada do back-end original, pensada para um
+            fundo claro (títulos em ink-900, texto secundário em ink-500,
+            cards brancos). Sem este fundo claro aqui, esse texto fica quase
+            invisível sobre o zinc-950 escuro do shell — por isso a área de
+            conteúdo (diferente do cabeçalho/menu, que seguem escuros de
+            propósito) recebe um fundo claro próprio. */}
+        <div className="min-h-[calc(100vh-5rem)] bg-olive-50">
+          <main className="mx-auto max-w-[1600px] p-5 lg:p-8">{children}</main>
+        </div>
       </div>
     </div>
   );
