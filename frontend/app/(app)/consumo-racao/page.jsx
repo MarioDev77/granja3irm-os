@@ -79,6 +79,16 @@ export default function ConsumoRacaoPage() {
         </button>
       </div>
 
+      {(flocks.length === 0 || feeds.length === 0) && !loading && (
+        <div className="card p-4 text-sm text-clay-700 bg-clay-50 border-clay-300">
+          {flocks.length === 0 && feeds.length === 0
+            ? 'Cadastre um lote (em Lotes) e uma ração (em Rações) antes de registrar consumo.'
+            : flocks.length === 0
+            ? 'Cadastre um lote (em Lotes) antes de registrar consumo.'
+            : 'Cadastre uma ração (em Rações) antes de registrar consumo.'}
+        </div>
+      )}
+
       {showForm && (
         <form onSubmit={handleSubmit} className="card p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
