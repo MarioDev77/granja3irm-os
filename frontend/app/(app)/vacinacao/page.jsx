@@ -70,6 +70,12 @@ export default function VacinacaoPage() {
         </button>
       </div>
 
+      {flocks.length === 0 && !loading && (
+        <div className="card p-4 text-sm text-clay-700 bg-clay-50 border-clay-300">
+          Cadastre pelo menos um lote ativo antes de registrar uma vacinação.
+        </div>
+      )}
+
       {upcoming.length > 0 && (
         <div className="card p-4 bg-egg-400/10 border-egg-500 text-sm text-ink-700">
           <strong>{upcoming.length}</strong> próxima(s) dose(s) nos próximos 7 dias.

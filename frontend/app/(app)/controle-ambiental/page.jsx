@@ -82,6 +82,12 @@ export default function ControleAmbientalPage() {
         </button>
       </div>
 
+      {sheds.length === 0 && !loading && (
+        <div className="card p-4 text-sm text-clay-700 bg-clay-50 border-clay-300">
+          Cadastre pelo menos um galpão antes de registrar uma leitura.
+        </div>
+      )}
+
       {thresholds && (thresholds.maxTemperature || thresholds.minTemperature || thresholds.maxHumidity || thresholds.minHumidity) && (
         <div className="card p-4 text-sm text-ink-700 flex flex-wrap gap-4">
           {thresholds.maxTemperature && <span>Temp. máx.: <strong>{Number(thresholds.maxTemperature)}°C</strong></span>}

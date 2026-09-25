@@ -66,6 +66,12 @@ export default function OcorrenciasPage() {
         </button>
       </div>
 
+      {flocks.length === 0 && !loading && (
+        <div className="card p-4 text-sm text-clay-700 bg-clay-50 border-clay-300">
+          Cadastre pelo menos um lote ativo antes de registrar uma ocorrência.
+        </div>
+      )}
+
       {showForm && (
         <form onSubmit={handleSubmit} className="card p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

@@ -90,6 +90,12 @@ export default function ContasReceberPage() {
         </button>
       </div>
 
+      {customers.length === 0 && !loading && (
+        <div className="card p-4 text-sm text-clay-700 bg-clay-50 border-clay-300">
+          Cadastre um cliente antes de lançar uma conta a receber.
+        </div>
+      )}
+
       {showForm && (
         <form onSubmit={handleSubmit} className="card p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
