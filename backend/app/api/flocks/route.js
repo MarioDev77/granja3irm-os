@@ -28,7 +28,8 @@ export async function GET() {
   const { rows: flocks } = await query(
     `SELECT
        f.id, f.code, f.name, f.entry_date AS "entryDate", f.breed, f.status, f.initial_quantity AS "initialQuantity",
-       json_build_object('name', s.name, 'code', s.code) AS shed,
+       f.shed_id AS "shedId",
+       json_build_object('id', s.id, 'name', s.name, 'code', s.code) AS shed,
        COALESCE((SELECT COUNT(*)::int FROM birds b WHERE b.flock_id = f.id AND b.status = 'ACTIVE'), 0) AS "activeBirds",
        COALESCE((SELECT SUM(ep.good_eggs)::int FROM egg_productions ep WHERE ep.flock_id = f.id), 0) AS "totalEggs",
        COALESCE((SELECT SUM(m.quantity)::int FROM mortality_records m WHERE m.flock_id = f.id), 0) AS "mortalityTotal"
