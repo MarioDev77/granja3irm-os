@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
+import EditButton from '@/components/EditButton';
+import EditModal from '@/components/EditModal';
 
 const emptyItem = { product: '', feedId: '', quantity: '', unitValue: '' };
 const emptyForm = { supplierId: '', date: '', paymentMethod: '', dueDate: '', discount: '0' };
@@ -17,6 +19,10 @@ export default function ComprasPage() {
   const [form, setForm] = useState(emptyForm);
   const [items, setItems] = useState([{ ...emptyItem }]);
   const [saving, setSaving] = useState(false);
+
+  const [editingPurchase, setEditingPurchase] = useState(null);
+  const [editForm, setEditForm] = useState({ date: '', paymentMethod: '', dueDate: '', discount: '0' });
+  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -81,6 +87,40 @@ export default function ComprasPage() {
       load();
     } catch (err) {
       toast.error(err.message || 'Erro ao atualizar compra.');
+    }
+  }
+
+  // Os itens de uma compra não podem ser editados depois de lançados (para
+  // não descasar do estoque já movimentado); apenas os dados do cabeçalho
+  // podem ser corrigidos, e só enquanto a compra ainda estiver pendente.
+  function openEdit(purchase) {
+    setEditingPurchase(purchase);
+    setEditForm({
+      date: purchase.date ? purchase.date.slice(0, 10) : '',
+      paymentMethod: purchase.paymentMethod || '',
+      dueDate: purchase.dueDate ? purchase.dueDate.slice(0, 10) : '',
+      discount: String(purchase.discount ?? '0'),
+    });
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/purchases/${editingPurchase.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Compra atualizada com sucesso.');
+      setEditingPurchase(null);
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Erro ao atualizar compra.');
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -228,11 +268,16 @@ export default function ComprasPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {p.status === 'PENDING' && (
-                        <button onClick={() => markReceived(p)} className="text-xs text-olive-700 hover:underline">
-                          Marcar como recebida
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-3">
+                        {p.status === 'PENDING' && (
+                          <>
+                            <button onClick={() => markReceived(p)} className="text-xs text-olive-700 hover:underline">
+                              Marcar como recebida
+                            </button>
+                            <EditButton onClick={() => openEdit(p)} />
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -241,6 +286,38 @@ export default function ComprasPage() {
           </div>
         )}
       </div>
+
+      <EditModal
+        open={!!editingPurchase}
+        title="Editar compra"
+        onClose={() => setEditingPurchase(null)}
+        onSubmit={handleEditSubmit}
+        saving={editSaving}
+      >
+        <div>
+          <label className="label">Data</label>
+          <input required type="date" className="input-field mt-1" value={editForm.date}
+            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Forma de pagamento</label>
+          <input className="input-field mt-1" value={editForm.paymentMethod}
+            onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Vencimento</label>
+          <input type="date" className="input-field mt-1" value={editForm.dueDate}
+            onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Desconto (R$)</label>
+          <input type="number" min="0" step="0.01" className="input-field mt-1" value={editForm.discount}
+            onChange={(e) => setEditForm({ ...editForm, discount: e.target.value })} />
+        </div>
+        <p className="sm:col-span-2 text-xs text-ink-500">
+          Os itens da compra não podem ser alterados depois de lançados. Para corrigir um item, cancele esta compra e registre uma nova.
+        </p>
+      </EditModal>
     </div>
   );
 }

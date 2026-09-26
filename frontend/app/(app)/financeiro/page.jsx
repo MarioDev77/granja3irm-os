@@ -3,14 +3,10 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import StatCard from '@/components/StatCard';
-import { ViewToggle } from '@/components/charts/ChartCard';
-import FinanceCharts from '@/components/charts/FinanceCharts';
 
 export default function FinanceiroPage() {
   const [data, setData] = useState(null);
-  const [raw, setRaw] = useState({ entries: [], payables: [], receivables: [] });
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('list');
 
   useEffect(() => {
     async function load() {
@@ -40,7 +36,6 @@ export default function FinanceiroPage() {
           revenue30d: flowData.totalInflow, expenses30d: flowData.totalOutflow,
           balance: flowData.closingBalance,
         });
-        setRaw({ entries: flowData.entries || [], payables: payData.payables || [], receivables: recData.receivables || [] });
       } catch (err) {
         toast.error(err.message || 'Erro ao carregar dados financeiros.');
       } finally {
@@ -56,17 +51,10 @@ export default function FinanceiroPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="font-display text-2xl text-ink-900">Dashboard financeiro</h1>
-          <p className="text-sm text-ink-500 mt-1">Visão geral dos últimos 30 dias.</p>
-        </div>
-        <ViewToggle view={view} onChange={setView} />
+      <div>
+        <h1 className="font-display text-2xl text-ink-900">Dashboard financeiro</h1>
+        <p className="text-sm text-ink-500 mt-1">Visão geral dos últimos 30 dias.</p>
       </div>
-
-      {view === 'charts' && (
-        <FinanceCharts entries={raw.entries} payables={raw.payables} receivables={raw.receivables} />
-      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <StatCard label="Receita (30 dias)" value={`R$ ${data.revenue30d.toFixed(2)}`} />

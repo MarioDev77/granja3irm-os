@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
+import EditButton from '@/components/EditButton';
+import EditModal from '@/components/EditModal';
 
 const emptyForm = { code: '', name: '', capacity: '', location: '', type: '', notes: '' };
+const STATUS_LABELS = { ACTIVE: 'Ativo', MAINTENANCE: 'Manutenção', INACTIVE: 'Inativo' };
 
 function occupancyColor(percent) {
   if (percent >= 95) return 'bg-clay-600';
@@ -19,6 +22,10 @@ export default function GalpoesPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [qrModal, setQrModal] = useState(null);
+
+  const [editingShed, setEditingShed] = useState(null);
+  const [editForm, setEditForm] = useState({ ...emptyForm, status: 'ACTIVE' });
+  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -68,6 +75,40 @@ export default function GalpoesPage() {
       setQrModal(data);
     } catch (err) {
       toast.error(err.message || 'Erro ao gerar QR Code.');
+    }
+  }
+
+  function openEdit(shed) {
+    setEditingShed(shed);
+    setEditForm({
+      code: shed.code || '',
+      name: shed.name || '',
+      capacity: String(shed.capacity ?? ''),
+      location: shed.location || '',
+      type: shed.type || '',
+      status: shed.status || 'ACTIVE',
+      notes: shed.notes || '',
+    });
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/sheds/${editingShed.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Galpão atualizado com sucesso.');
+      setEditingShed(null);
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Erro ao atualizar galpão.');
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -146,6 +187,7 @@ export default function GalpoesPage() {
               </div>
               <p className="text-xs text-ink-500 mt-1">
                 {shed.type || 'Tipo não informado'} {shed.location ? `· ${shed.location}` : ''}
+                {shed.status && shed.status !== 'ACTIVE' ? ` · ${STATUS_LABELS[shed.status]}` : ''}
               </p>
 
               <div className="mt-3">
@@ -163,9 +205,12 @@ export default function GalpoesPage() {
 
               <div className="flex items-center justify-between mt-3">
                 <p className="text-xs text-ink-500">{shed.activeFlockCount} lote(s) ativo(s)</p>
-                <button onClick={() => showQrCode(shed)} className="text-xs text-olive-700 hover:underline">
-                  Ver QR Code
-                </button>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => showQrCode(shed)} className="text-xs text-olive-700 hover:underline">
+                    Ver QR Code
+                  </button>
+                  <EditButton onClick={() => openEdit(shed)} />
+                </div>
               </div>
             </div>
           ))}
@@ -187,7 +232,52 @@ export default function GalpoesPage() {
           </div>
         </div>
       )}
-    </div>
 
+      <EditModal
+        open={!!editingShed}
+        title="Editar galpão"
+        onClose={() => setEditingShed(null)}
+        onSubmit={handleEditSubmit}
+        saving={editSaving}
+      >
+        <div>
+          <label className="label">Código/número</label>
+          <input required className="input-field mt-1" value={editForm.code}
+            onChange={(e) => setEditForm({ ...editForm, code: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Nome</label>
+          <input required className="input-field mt-1" value={editForm.name}
+            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Capacidade (aves)</label>
+          <input required type="number" min="1" className="input-field mt-1" value={editForm.capacity}
+            onChange={(e) => setEditForm({ ...editForm, capacity: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Status</label>
+          <select className="input-field mt-1" value={editForm.status}
+            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
+            {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">Tipo</label>
+          <input className="input-field mt-1" value={editForm.type}
+            onChange={(e) => setEditForm({ ...editForm, type: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Localização</label>
+          <input className="input-field mt-1" value={editForm.location}
+            onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="label">Observações</label>
+          <input className="input-field mt-1" value={editForm.notes}
+            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+        </div>
+      </EditModal>
+    </div>
   );
 }

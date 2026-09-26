@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
+import EditButton from '@/components/EditButton';
+import EditModal from '@/components/EditModal';
 
 const emptyForm = { date: '', flockId: '', goodEggs: '', brokenEggs: '0', dirtyEggs: '0', discardedEggs: '0', notes: '' };
 
@@ -13,6 +15,10 @@ export default function ProducaoPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -53,6 +59,40 @@ export default function ProducaoPage() {
       toast.error(err.message || 'Erro ao registrar produção.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  // Apenas as quantidades e observações podem ser corrigidas (data e lote
+  // são fixos após o lançamento, ver PATCH /api/egg-production/:id).
+  function openEdit(record) {
+    setEditingRecord(record);
+    setEditForm({
+      goodEggs: String(record.goodEggs ?? '0'),
+      brokenEggs: String(record.brokenEggs ?? '0'),
+      dirtyEggs: String(record.dirtyEggs ?? '0'),
+      discardedEggs: String(record.discardedEggs ?? '0'),
+      notes: record.notes || '',
+    });
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/egg-production/${editingRecord.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Produção atualizada com sucesso.');
+      setEditingRecord(null);
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Erro ao atualizar produção.');
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -138,6 +178,7 @@ export default function ProducaoPage() {
                   <th className="px-4 py-3">Perdas</th>
                   <th className="px-4 py-3">Taxa de postura</th>
                   <th className="px-4 py-3">Responsável</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -149,6 +190,9 @@ export default function ProducaoPage() {
                     <td className="px-4 py-3 text-ink-700">{r.lossPercent}%</td>
                     <td className="px-4 py-3 text-ink-700">{r.layingRate !== null ? `${r.layingRate}%` : '—'}</td>
                     <td className="px-4 py-3 text-ink-500 text-xs">{r.responsible?.name}</td>
+                    <td className="px-4 py-3 text-right">
+                      <EditButton onClick={() => openEdit(r)} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -156,6 +200,40 @@ export default function ProducaoPage() {
           </div>
         )}
       </div>
+
+      <EditModal
+        open={!!editingRecord}
+        title="Editar produção do dia"
+        onClose={() => setEditingRecord(null)}
+        onSubmit={handleEditSubmit}
+        saving={editSaving}
+      >
+        <div>
+          <label className="label">Ovos bons</label>
+          <input required type="number" min="0" className="input-field mt-1" value={editForm.goodEggs}
+            onChange={(e) => setEditForm({ ...editForm, goodEggs: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Ovos quebrados</label>
+          <input type="number" min="0" className="input-field mt-1" value={editForm.brokenEggs}
+            onChange={(e) => setEditForm({ ...editForm, brokenEggs: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Ovos sujos</label>
+          <input type="number" min="0" className="input-field mt-1" value={editForm.dirtyEggs}
+            onChange={(e) => setEditForm({ ...editForm, dirtyEggs: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Ovos descartados</label>
+          <input type="number" min="0" className="input-field mt-1" value={editForm.discardedEggs}
+            onChange={(e) => setEditForm({ ...editForm, discardedEggs: e.target.value })} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="label">Observações</label>
+          <input className="input-field mt-1" value={editForm.notes}
+            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+        </div>
+      </EditModal>
     </div>
   );
 }

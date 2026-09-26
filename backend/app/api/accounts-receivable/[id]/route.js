@@ -5,7 +5,9 @@ import { SECTIONS } from '@/lib/rbac';
 import { requireSection, badRequest, notFound } from '@/lib/apiAuth';
 
 const updateSchema = z.object({
-  status: z.enum(['OPEN', 'RECEIVED', 'OVERDUE', 'CANCELED']),
+  status: z.enum(['OPEN', 'RECEIVED', 'OVERDUE', 'CANCELED']).optional(),
+  value: z.coerce.number().positive().optional(),
+  dueDate: z.string().min(1).optional(),
 });
 
 export async function PATCH(request, { params: __p }) {
@@ -20,15 +22,18 @@ export async function PATCH(request, { params: __p }) {
   const existing = existingRows[0];
   if (!existing) return notFound('Conta a receber não encontrada.');
 
-  const { status } = parsed.data;
+  const { status, value, dueDate } = parsed.data;
+  const finalStatus = status ?? existing.status;
 
   const { rows } = await query(
     `UPDATE accounts_receivable
-     SET status = $1, received_at = CASE WHEN $1 = 'RECEIVED' THEN now() ELSE received_at END, updated_at = now()
-     WHERE id = $2
+     SET value = $1, due_date = $2, status = $3,
+         received_at = CASE WHEN $3 = 'RECEIVED' AND received_at IS NULL THEN now() WHEN $3 <> 'RECEIVED' THEN NULL ELSE received_at END,
+         updated_at = now()
+     WHERE id = $4
      RETURNING id, customer_id AS "customerId", sale_id AS "saleId", value, due_date AS "dueDate",
        received_at AS "receivedAt", status`,
-    [status, params.id]
+    [value ?? existing.value, dueDate ? new Date(dueDate) : existing.due_date, finalStatus, params.id]
   );
   const receivable = rows[0];
 
@@ -37,8 +42,9 @@ export async function PATCH(request, { params: __p }) {
      VALUES ($1, $2, 'UPDATE', 'AccountReceivable', $3, $4, $5, $6)`,
     [
       genId(), session.user.id, receivable.id,
-      JSON.stringify({ status: existing.status }), JSON.stringify({ status: receivable.status }),
-      `${session.user.name} atualizou uma conta a receber para ${receivable.status}.`,
+      JSON.stringify({ status: existing.status, value: existing.value, dueDate: existing.due_date }),
+      JSON.stringify(parsed.data),
+      `${session.user.name} editou uma conta a receber.`,
     ]
   );
 

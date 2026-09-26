@@ -226,103 +226,112 @@
 }
 
 /* ---------------------------------------------------------------------
- * Tela de login "premium" (cartão dourado/verde com logo). Todo o CSS
+ * Tela de login "premium" (painel com partículas animadas). Todo o CSS
  * abaixo é isolado sob .granja-login para nunca vazar para o resto do
- * sistema (que usa a paleta clara "ink"/"olive"): os seletores ficam
- * propositalmente restritos a esse escopo.
+ * sistema (que usa a paleta clara "ink"/"olive"): os seletores de tag
+ * genéricos do template original (a, input, :root) foram propositalmente
+ * restritos a esse escopo.
  * ------------------------------------------------------------------- */
 .granja-login {
   color-scheme: dark;
 }
 
-.granja-login.login-page {
+.login-page {
   min-height: 100svh;
   display: grid;
   place-items: center;
-  position: relative;
-  overflow: hidden;
   padding: 24px;
-  background: radial-gradient(circle at 50% 45%, rgba(28, 62, 24, .22), transparent 42%), #080b07;
-  color: #f8edd9;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 42%, #30343a 0%, #202329 34%, #17191e 78%);
+  color: #f3f5f7;
 }
-.granja-login.login-page::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: .28;
-  background-image: linear-gradient(rgba(229, 165, 46, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(229, 165, 46, .035) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: linear-gradient(to bottom, black, transparent 80%);
-}
-.granja-login .login-glow { position: absolute; border-radius: 50%; filter: blur(85px); pointer-events: none; }
-.granja-login .login-glow-top { width: 300px; height: 300px; right: -110px; top: -120px; background: rgba(229, 165, 46, .12); }
-.granja-login .login-glow-bottom { width: 330px; height: 330px; left: -150px; bottom: -150px; background: rgba(34, 93, 24, .22); }
-
-.granja-login .login-card {
+.login-card {
   position: relative;
-  width: min(100%, 480px);
-  padding: 38px 52px 34px;
-  border: 1px solid rgba(229, 165, 46, .25);
-  border-radius: 28px;
-  background: linear-gradient(145deg, rgba(29, 45, 23, .95), rgba(12, 16, 10, .96));
-  box-shadow: 0 30px 100px rgba(0, 0, 0, .58), 0 0 0 1px rgba(255, 255, 255, .04) inset;
+  display: grid;
+  grid-template-columns: 45% 55%;
+  width: min(100%, 1000px);
+  min-height: 560px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  background: rgba(21, 23, 27, 0.78);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42), inset 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
 }
-.granja-login .login-logo-wrap { display: grid; place-items: center; margin: -3px auto 2px; }
-.granja-login .login-logo { width: 146px; height: 146px; object-fit: contain; filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .4)); }
-.granja-login .form-heading { text-align: center; margin-bottom: 29px; }
-.granja-login .form-eyebrow { margin: 0 0 7px; color: #ffd36b; letter-spacing: .18em; font-size: 10px; font-weight: 700; }
-.granja-login .form-heading h1 { margin: 0 0 9px; color: #f8edd9; font-family: Georgia, serif; font-size: clamp(34px, 6vw, 44px); font-weight: 500; letter-spacing: -.04em; }
-.granja-login .form-heading > p:last-child { margin: 0; color: #a9a497; font-size: 13px; line-height: 1.5; }
-.granja-login .login-form { display: grid; gap: 19px; width: 100%; }
-.granja-login .field-group { display: grid; gap: 8px; }
-.granja-login .field-group label { color: #e0d5c3; font-size: 13px; font-weight: 600; }
-.granja-login .field-label-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.granja-login a { color: #ffd36b; text-decoration: none; transition: color 0.2s ease; }
-.granja-login a:hover { color: #fff; text-decoration: underline; }
-.granja-login .field-label-row a { font-size: 11px; font-weight: 500; }
-.granja-login .input-with-icon { display: flex; align-items: center; gap: 11px; min-height: 54px; padding: 0 15px; border: 1px solid rgba(229, 165, 46, .16); border-radius: 11px; background: rgba(5, 8, 5, .48); transition: border-color .2s, box-shadow .2s, background .2s; }
-.granja-login .input-with-icon:focus-within { border-color: #e5a52e; background: rgba(5, 8, 5, .7); box-shadow: 0 0 0 3px rgba(229, 165, 46, .12); }
-.granja-login .input-with-icon > svg { flex: 0 0 auto; color: #e5a52e; }
-.granja-login .input-with-icon input {
-  min-width: 0;
+.window-dots { position: absolute; z-index: 2; top: 17px; left: 19px; display: flex; gap: 6px; }
+.window-dots span { width: 6px; height: 6px; border-radius: 50%; background: #858a92; opacity: 0.55; }
+.login-content { display: flex; align-items: center; padding: 70px 48px 42px; }
+.login-form { width: 100%; max-width: 330px; margin: 0 auto; }
+.form-heading { margin-bottom: 34px; }
+.eyebrow { margin: 0 0 19px; color: #8e99a9; font-size: 9px; letter-spacing: 0.22em; }
+.form-heading h1 { margin: 0 0 11px; font-size: 27px; font-weight: 500; letter-spacing: -0.04em; color: #f3f5f7; }
+.form-heading p:last-child { margin: 0; color: #8f949e; font-size: 11px; line-height: 1.6; }
+.fields { display: grid; gap: 9px; }
+.fields label { color: #a8adb6; font-size: 10px; }
+.password-label-row { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; }
+.granja-login a { color: #aeb7c5; text-decoration: none; transition: color 0.2s ease; }
+.granja-login a:hover { color: #fff; }
+.password-label-row a { font-size: 9px; }
+.granja-login input {
   width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #f8edd9;
-  padding: 15px 0;
-  font-size: 14px;
+  height: 35px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  padding: 0 11px;
+  background: rgba(5, 6, 8, 0.32);
+  color: #f6f7f8;
   font: inherit;
+  font-size: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
-.granja-login .input-with-icon input::placeholder { color: #77786e; }
-.granja-login .password-field button { display: grid; place-items: center; flex: 0 0 auto; width: 34px; height: 34px; border: 0; border-radius: 7px; background: transparent; color: #99998e; cursor: pointer; }
-.granja-login .password-field button:hover, .granja-login .password-field button:focus-visible { color: #ffd36b; background: rgba(229, 165, 46, .1); outline: none; }
-.granja-login .login-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 54px;
-  margin-top: 2px;
-  border: 1px solid #e5a52e;
-  border-radius: 11px;
-  background: linear-gradient(135deg, #ffd36b, #e5a52e);
-  color: #171208;
-  font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform .2s, box-shadow .2s, filter .2s;
+.granja-login input::placeholder { color: #656b75; }
+.granja-login input:focus {
+  border-color: rgba(190, 215, 255, 0.58);
+  background: rgba(12, 14, 18, 0.72);
+  box-shadow: 0 0 0 3px rgba(128, 165, 220, 0.1);
+  outline: none;
 }
-.granja-login .login-button:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(229, 165, 46, .2); }
-.granja-login .login-button:active:not(:disabled) { transform: translateY(1px); }
-.granja-login .login-button:disabled { opacity: .7; cursor: wait; }
+.password-wrap { position: relative; }
+.password-wrap input { padding-right: 38px; }
+.icon-button { position: absolute; top: 0; right: 0; display: grid; width: 38px; height: 35px; place-items: center; border: 0; background: transparent; color: #79818d; cursor: pointer; transition: color 0.2s; }
+.icon-button:hover, .icon-button:focus-visible { color: #e8eef8; outline: none; }
+.submit-button { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; height: 36px; margin-top: 24px; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 5px; background: linear-gradient(110deg, #9baec5, #d0d9e5); color: #20252c; font-size: 10px; font-weight: 600; cursor: pointer; transition: transform 0.2s, filter 0.2s, box-shadow 0.2s; }
+.submit-button:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 7px 20px rgba(168, 194, 230, 0.16); }
+.submit-button:active:not(:disabled) { transform: translateY(1px); }
+.submit-button:disabled { cursor: wait; opacity: 0.75; }
+.form-message { min-height: 15px; margin: 10px 0 0; font-size: 10px; color: #92a0b3; text-align: center; }
+.form-message.success { color: #b8d7c8; }
+.form-message.error { color: #e2a4a4; }
+.signup-prompt { margin: 87px 0 0; color: #737984; font-size: 9px; text-align: center; }
+.visual-panel { position: relative; min-height: 100%; overflow: hidden; background: #0d0e11; isolation: isolate; }
+.visual-panel::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 52% 48%, rgba(70, 91, 126, 0.18), transparent 35%), radial-gradient(circle at 80% 20%, rgba(164, 182, 211, 0.08), transparent 30%); }
+.visual-grid { position: absolute; inset: 0; opacity: 0.15; background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(circle, black, transparent 70%); }
+.glow-sphere, .particle, .vertical-line, .orbit { position: absolute; }
+.glow-sphere { border-radius: 50%; background: radial-gradient(circle at 35% 28%, #fff 0 4%, #d5e5ff 10%, #7f9fcf 28%, rgba(73, 100, 145, 0.3) 54%, transparent 72%); filter: blur(0.2px); }
+.sphere-large { top: 40%; left: 45%; width: 56px; height: 56px; animation: granja-login-float 6s ease-in-out infinite, granja-login-pulse 4s ease-in-out infinite; }
+.sphere-small { top: 19%; left: 70%; width: 20px; height: 20px; animation: granja-login-float 5s ease-in-out -1s infinite reverse, granja-login-pulse 3s ease-in-out infinite; }
+.particle { width: 3px; height: 3px; border-radius: 50%; background: #d6e5ff; box-shadow: 0 0 9px 2px rgba(183, 213, 255, 0.8); animation: granja-login-drift 7s ease-in-out infinite; }
+.particle-one { top: 25%; left: 28%; animation-delay: -1s; }
+.particle-two { top: 62%; left: 31%; animation-delay: -3s; }
+.particle-three { top: 75%; left: 72%; animation-delay: -4s; }
+.particle-four { top: 36%; left: 79%; animation-delay: -5s; }
+.particle-five { top: 80%; left: 43%; opacity: 0.45; }
+.particle-six { top: 17%; left: 52%; opacity: 0.5; }
+.particle-seven { top: 56%; left: 57%; width: 2px; height: 2px; }
+.vertical-line { width: 1px; height: 108px; background: linear-gradient(transparent, rgba(197, 220, 255, 0.65), transparent); animation: granja-login-line-drift 5s ease-in-out infinite; }
+.line-one { top: 24%; left: 49%; }
+.line-two { top: 51%; left: 63%; animation-delay: -2s; height: 83px; }
+.orbit { width: 160px; height: 160px; border: 1px solid rgba(170, 199, 240, 0.13); border-radius: 50%; transform: rotate(32deg) skewX(-18deg); animation: granja-login-orbit 12s linear infinite; }
+.orbit-one { top: 28%; left: 27%; }
+.orbit-two { top: 36%; left: 39%; width: 100px; height: 100px; animation-direction: reverse; animation-duration: 9s; }
+.visual-caption { position: absolute; right: 28px; bottom: 25px; color: #8d96a4; font-size: 9px; letter-spacing: 0.2em; }
 .granja-login .spin { animation: granja-login-spin 1s linear infinite; }
-.granja-login .form-message { min-height: 15px; margin: 6px 0 0; font-size: 12px; color: #a9a497; text-align: center; }
-.granja-login .form-message.success { color: #b7e0a0; }
-.granja-login .form-message.error { color: #f0a5a5; }
-.granja-login .help-text { margin: 25px 0 0; color: #777a70; text-align: center; font-size: 11px; }
 
+@keyframes granja-login-float { 50% { transform: translateY(-14px); } }
+@keyframes granja-login-pulse { 50% { filter: brightness(1.3); } }
+@keyframes granja-login-drift { 50% { transform: translate(16px, -12px); opacity: 0.25; } }
+@keyframes granja-login-line-drift { 50% { transform: translateY(13px); opacity: 0.45; } }
+@keyframes granja-login-orbit { to { transform: rotate(392deg) skewX(-18deg); } }
 @keyframes granja-login-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -333,19 +342,12 @@
   }
 }
 
-@media (max-height: 650px) and (min-width: 521px) {
-  .granja-login .login-card { padding-top: 22px; padding-bottom: 22px; }
-  .granja-login .login-logo { width: 105px; height: 105px; }
-  .granja-login .form-heading { margin-bottom: 20px; }
-  .granja-login .login-form { gap: 13px; }
-  .granja-login .input-with-icon, .granja-login .login-button { min-height: 46px; }
-  .granja-login .input-with-icon input { padding-top: 11px; padding-bottom: 11px; }
-  .granja-login .help-text { margin-top: 17px; }
-}
-
-@media (max-width: 520px) {
-  .granja-login.login-page { padding: 16px; }
-  .granja-login .login-card { padding: 30px 23px 27px; border-radius: 22px; }
-  .granja-login .login-logo { width: 126px; height: 126px; }
-  .granja-login .form-heading { margin-bottom: 26px; }
+@media (max-width: 700px) {
+  .login-page { padding: 14px; overflow: auto; }
+  .login-card { display: flex; flex-direction: column-reverse; min-height: 0; border-radius: 14px; }
+  .visual-panel { min-height: 150px; flex: 0 0 150px; }
+  .login-content { padding: 38px 26px 30px; }
+  .signup-prompt { margin-top: 46px; }
+  .window-dots { top: 13px; left: 15px; }
+  .sphere-large { width: 40px; height: 40px; }
 }

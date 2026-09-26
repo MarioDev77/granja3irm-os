@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
+import EditButton from '@/components/EditButton';
+import EditModal from '@/components/EditModal';
 
 const emptyForm = { customerId: '', value: '', dueDate: '' };
 const STATUS_LABELS = { OPEN: 'Em aberto', RECEIVED: 'Recebida', OVERDUE: 'Vencida', CANCELED: 'Cancelada' };
@@ -18,6 +20,10 @@ export default function ContasReceberPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  const [editingReceivable, setEditingReceivable] = useState(null);
+  const [editForm, setEditForm] = useState({ value: '', dueDate: '' });
+  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -72,6 +78,37 @@ export default function ContasReceberPage() {
       load();
     } catch (err) {
       toast.error(err.message || 'Erro ao atualizar conta.');
+    }
+  }
+
+  // Cliente vinculado não pode ser trocado (a conta nasce junto com a
+  // venda/lançamento original) — apenas valor e vencimento são corrigíveis.
+  function openEdit(receivable) {
+    setEditingReceivable(receivable);
+    setEditForm({
+      value: String(receivable.value ?? ''),
+      dueDate: receivable.dueDate ? receivable.dueDate.slice(0, 10) : '',
+    });
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/accounts-receivable/${editingReceivable.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Conta a receber atualizada com sucesso.');
+      setEditingReceivable(null);
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Erro ao atualizar conta.');
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -153,11 +190,14 @@ export default function ContasReceberPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {(r.status === 'OPEN' || r.status === 'OVERDUE') && (
-                        <button onClick={() => markReceived(r)} className="text-xs text-olive-700 hover:underline">
-                          Marcar como recebida
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-3">
+                        {(r.status === 'OPEN' || r.status === 'OVERDUE') && (
+                          <button onClick={() => markReceived(r)} className="text-xs text-olive-700 hover:underline">
+                            Marcar como recebida
+                          </button>
+                        )}
+                        <EditButton onClick={() => openEdit(r)} />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -166,6 +206,25 @@ export default function ContasReceberPage() {
           </div>
         )}
       </div>
+
+      <EditModal
+        open={!!editingReceivable}
+        title="Editar conta a receber"
+        onClose={() => setEditingReceivable(null)}
+        onSubmit={handleEditSubmit}
+        saving={editSaving}
+      >
+        <div>
+          <label className="label">Valor (R$)</label>
+          <input required type="number" min="0.01" step="0.01" className="input-field mt-1" value={editForm.value}
+            onChange={(e) => setEditForm({ ...editForm, value: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Vencimento</label>
+          <input required type="date" className="input-field mt-1" value={editForm.dueDate}
+            onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })} />
+        </div>
+      </EditModal>
     </div>
   );
 }

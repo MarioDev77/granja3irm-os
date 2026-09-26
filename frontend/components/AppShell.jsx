@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import {
   Activity, AlertTriangle, Bell, Bird, Boxes, Bug, CircleDollarSign, ClipboardList,
   Egg, Factory, FileText, LayoutDashboard, Leaf, Menu, Package, PawPrint,
-  Settings, ShieldCheck, ShoppingCart, Syringe, Users, Wheat, X,
+  Settings, ShieldCheck, ShoppingCart, Syringe, Tractor, Users, Wheat, X,
 } from 'lucide-react';
 import { SECTIONS, ROLE_LABELS, can } from '@/lib/rbac';
 
@@ -122,8 +121,8 @@ export default function AppShell({ user, children }) {
         }`}
       >
         <div className="flex h-20 items-center gap-3 border-b border-white/10 px-6">
-          <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
-            <Image src="/granja-logo.png" alt="Logo Granja Oliveira" width={40} height={40} className="size-full object-cover" />
+          <div className="flex size-10 items-center justify-center rounded-xl bg-white text-black">
+            <Tractor className="size-5" />
           </div>
           <div>
             <p className="text-[15px] font-bold tracking-wide">GRANJA OLIVEIRA</p>
