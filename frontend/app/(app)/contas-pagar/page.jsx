@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
 
 const emptyForm = { description: '', category: '', value: '', dueDate: '', paymentMethod: '', notes: '' };
 const STATUS_LABELS = { OPEN: 'Em aberto', PAID: 'Paga', OVERDUE: 'Vencida', CANCELED: 'Cancelada' };
@@ -20,10 +18,6 @@ export default function ContasPagarPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  const [editingPayable, setEditingPayable] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
-  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -77,39 +71,6 @@ export default function ContasPagarPage() {
       load();
     } catch (err) {
       toast.error(err.message || 'Erro ao atualizar conta.');
-    }
-  }
-
-  function openEdit(payable) {
-    setEditingPayable(payable);
-    setEditForm({
-      description: payable.description || '',
-      category: payable.category || '',
-      value: String(payable.value ?? ''),
-      dueDate: payable.dueDate ? payable.dueDate.slice(0, 10) : '',
-      paymentMethod: payable.paymentMethod || '',
-      notes: payable.notes || '',
-    });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/accounts-payable/${editingPayable.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Conta a pagar atualizada com sucesso.');
-      setEditingPayable(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar conta.');
-    } finally {
-      setEditSaving(false);
     }
   }
 
@@ -197,14 +158,11 @@ export default function ContasPagarPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        {(p.status === 'OPEN' || p.status === 'OVERDUE') && (
-                          <button onClick={() => markPaid(p)} className="text-xs text-olive-700 hover:underline">
-                            Marcar como paga
-                          </button>
-                        )}
-                        <EditButton onClick={() => openEdit(p)} />
-                      </div>
+                      {(p.status === 'OPEN' || p.status === 'OVERDUE') && (
+                        <button onClick={() => markPaid(p)} className="text-xs text-olive-700 hover:underline">
+                          Marcar como paga
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -213,48 +171,6 @@ export default function ContasPagarPage() {
           </div>
         )}
       </div>
-
-      <EditModal
-        open={!!editingPayable}
-        title="Editar conta a pagar"
-        onClose={() => setEditingPayable(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div className="sm:col-span-2">
-          <label className="label">Descrição</label>
-          <input required className="input-field mt-1" value={editForm.description}
-            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Categoria</label>
-          <select required className="input-field mt-1" value={editForm.category}
-            onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}>
-            <option value="">Selecione...</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Valor (R$)</label>
-          <input required type="number" min="0.01" step="0.01" className="input-field mt-1" value={editForm.value}
-            onChange={(e) => setEditForm({ ...editForm, value: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Vencimento</label>
-          <input required type="date" className="input-field mt-1" value={editForm.dueDate}
-            onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Forma de pagamento</label>
-          <input className="input-field mt-1" value={editForm.paymentMethod}
-            onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })} />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label">Observações</label>
-          <input className="input-field mt-1" value={editForm.notes}
-            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-        </div>
-      </EditModal>
     </div>
   );
 }

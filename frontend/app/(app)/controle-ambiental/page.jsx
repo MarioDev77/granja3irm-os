@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
 
 const emptyForm = { shedId: '', temperature: '', humidity: '', ventilation: '', lighting: '', waterQuality: '' };
 
@@ -17,10 +15,6 @@ export default function ControleAmbientalPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [tokenModal, setTokenModal] = useState(null);
-
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
-  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -60,42 +54,6 @@ export default function ControleAmbientalPage() {
       toast.error(err.message || 'Erro ao registrar leitura.');
     } finally {
       setSaving(false);
-    }
-  }
-
-  // Leituras enviadas por sensores IoT não têm edição manual (preserva o
-  // histórico do equipamento); só leituras lançadas manualmente aparecem
-  // com o botão Editar.
-  function openEdit(record) {
-    setEditingRecord(record);
-    setEditForm({
-      shedId: record.shedId || record.shed?.id || '',
-      temperature: record.temperature !== null && record.temperature !== undefined ? String(record.temperature) : '',
-      humidity: record.humidity !== null && record.humidity !== undefined ? String(record.humidity) : '',
-      ventilation: record.ventilation || '',
-      lighting: record.lighting || '',
-      waterQuality: record.waterQuality || '',
-    });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/environmental-records/${editingRecord.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Leitura atualizada com sucesso.');
-      setEditingRecord(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar leitura.');
-    } finally {
-      setEditSaving(false);
     }
   }
 
@@ -215,7 +173,6 @@ export default function ControleAmbientalPage() {
                   <th className="px-4 py-3">Temp.</th>
                   <th className="px-4 py-3">Umidade</th>
                   <th className="px-4 py-3">Origem</th>
-                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -226,9 +183,6 @@ export default function ControleAmbientalPage() {
                     <td className="px-4 py-3 text-ink-700">{r.temperature !== null ? `${Number(r.temperature)}°C` : '—'}</td>
                     <td className="px-4 py-3 text-ink-700">{r.humidity !== null ? `${Number(r.humidity)}%` : '—'}</td>
                     <td className="px-4 py-3 text-ink-500 text-xs">{r.source === 'SENSOR' ? 'Sensor' : 'Manual'}</td>
-                    <td className="px-4 py-3 text-right">
-                      {r.source !== 'SENSOR' && <EditButton onClick={() => openEdit(r)} />}
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -251,47 +205,6 @@ export default function ControleAmbientalPage() {
           </div>
         </div>
       )}
-
-      <EditModal
-        open={!!editingRecord}
-        title="Editar leitura ambiental"
-        onClose={() => setEditingRecord(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Galpão</label>
-          <select required className="input-field mt-1" value={editForm.shedId}
-            onChange={(e) => setEditForm({ ...editForm, shedId: e.target.value })}>
-            {sheds.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Temperatura (°C)</label>
-          <input type="number" step="0.1" className="input-field mt-1" value={editForm.temperature}
-            onChange={(e) => setEditForm({ ...editForm, temperature: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Umidade (%)</label>
-          <input type="number" step="0.1" className="input-field mt-1" value={editForm.humidity}
-            onChange={(e) => setEditForm({ ...editForm, humidity: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Ventilação</label>
-          <input className="input-field mt-1" value={editForm.ventilation}
-            onChange={(e) => setEditForm({ ...editForm, ventilation: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Iluminação</label>
-          <input className="input-field mt-1" value={editForm.lighting}
-            onChange={(e) => setEditForm({ ...editForm, lighting: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Qualidade da água</label>
-          <input className="input-field mt-1" value={editForm.waterQuality}
-            onChange={(e) => setEditForm({ ...editForm, waterQuality: e.target.value })} />
-        </div>
-      </EditModal>
     </div>
   );
 }

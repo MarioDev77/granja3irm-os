@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
 
 const STATUS_LABELS = { ACTIVE: 'Ativa', SOLD: 'Vendida', DEAD: 'Morta', DISCARDED: 'Descartada', TRANSFERRED: 'Transferida' };
 
@@ -18,10 +16,6 @@ export default function AvesPage() {
 
   const [singleForm, setSingleForm] = useState({ identifier: '', sex: 'UNKNOWN', breed: '', flockId: '' });
   const [bulkForm, setBulkForm] = useState({ flockId: '', quantity: '', prefix: '', sex: 'UNKNOWN', breed: '' });
-
-  const [editingBird, setEditingBird] = useState(null);
-  const [editForm, setEditForm] = useState({ identifier: '', sex: 'UNKNOWN', breed: '', flockId: '' });
-  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -102,37 +96,6 @@ export default function AvesPage() {
       load();
     } catch (err) {
       toast.error(err.message || 'Erro ao atualizar status.');
-    }
-  }
-
-  function openEdit(bird) {
-    setEditingBird(bird);
-    setEditForm({
-      identifier: bird.identifier || '',
-      sex: bird.sex || 'UNKNOWN',
-      breed: bird.breed || '',
-      flockId: bird.flockId || bird.flock?.id || '',
-    });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/birds/${editingBird.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Ave atualizada com sucesso.');
-      setEditingBird(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar ave.');
-    } finally {
-      setEditSaving(false);
     }
   }
 
@@ -253,7 +216,6 @@ export default function AvesPage() {
                   <th className="px-4 py-3">Sexo</th>
                   <th className="px-4 py-3">Raça</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -274,9 +236,6 @@ export default function AvesPage() {
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <EditButton onClick={() => openEdit(bird)} />
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -287,41 +246,6 @@ export default function AvesPage() {
           </div>
         )}
       </div>
-
-      <EditModal
-        open={!!editingBird}
-        title="Editar ave"
-        onClose={() => setEditingBird(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Identificação</label>
-          <input required className="input-field mt-1" value={editForm.identifier}
-            onChange={(e) => setEditForm({ ...editForm, identifier: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Lote</label>
-          <select required className="input-field mt-1" value={editForm.flockId}
-            onChange={(e) => setEditForm({ ...editForm, flockId: e.target.value })}>
-            {flocks.map((f) => <option key={f.id} value={f.id}>{f.name} ({f.code})</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Sexo</label>
-          <select className="input-field mt-1" value={editForm.sex}
-            onChange={(e) => setEditForm({ ...editForm, sex: e.target.value })}>
-            <option value="UNKNOWN">Não informado</option>
-            <option value="FEMALE">Fêmea</option>
-            <option value="MALE">Macho</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">Raça</label>
-          <input className="input-field mt-1" value={editForm.breed}
-            onChange={(e) => setEditForm({ ...editForm, breed: e.target.value })} />
-        </div>
-      </EditModal>
     </div>
   );
 }

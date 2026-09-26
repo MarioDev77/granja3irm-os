@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
 
 const emptyForm = {
   code: '', name: '', shedId: '', entryDate: '', birthDate: '',
@@ -20,10 +18,6 @@ export default function LotesPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  const [editingFlock, setEditingFlock] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', shedId: '', breed: '', status: 'ACTIVE', notes: '' });
-  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -80,38 +74,6 @@ export default function LotesPage() {
       load();
     } catch (err) {
       toast.error(err.message || 'Erro ao atualizar status.');
-    }
-  }
-
-  function openEdit(flock) {
-    setEditingFlock(flock);
-    setEditForm({
-      name: flock.name || '',
-      shedId: flock.shedId || flock.shed?.id || '',
-      breed: flock.breed || '',
-      status: flock.status || 'ACTIVE',
-      notes: flock.notes || '',
-    });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/flocks/${editingFlock.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Lote atualizado com sucesso.');
-      setEditingFlock(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar lote.');
-    } finally {
-      setEditSaving(false);
     }
   }
 
@@ -215,7 +177,6 @@ export default function LotesPage() {
                   <th className="px-4 py-3">Produção acum.</th>
                   <th className="px-4 py-3">Mortalidade</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -238,9 +199,6 @@ export default function LotesPage() {
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <EditButton onClick={() => openEdit(flock)} />
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -248,44 +206,6 @@ export default function LotesPage() {
           </div>
         )}
       </div>
-
-      <EditModal
-        open={!!editingFlock}
-        title="Editar lote"
-        onClose={() => setEditingFlock(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Nome</label>
-          <input required className="input-field mt-1" value={editForm.name}
-            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Galpão</label>
-          <select required className="input-field mt-1" value={editForm.shedId}
-            onChange={(e) => setEditForm({ ...editForm, shedId: e.target.value })}>
-            {sheds.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Raça</label>
-          <input className="input-field mt-1" value={editForm.breed}
-            onChange={(e) => setEditForm({ ...editForm, breed: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Status</label>
-          <select className="input-field mt-1" value={editForm.status}
-            onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
-            {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label">Observações</label>
-          <input className="input-field mt-1" value={editForm.notes}
-            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-        </div>
-      </EditModal>
     </div>
   );
 }

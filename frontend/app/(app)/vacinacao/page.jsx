@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
+import { ViewToggle } from '@/components/charts/ChartCard';
+import VaccinationCharts from '@/components/charts/VaccinationCharts';
 
 const emptyForm = { vaccine: '', flockId: '', date: '', quantity: '', nextDoseDate: '', notes: '' };
 
@@ -15,10 +15,7 @@ export default function VacinacaoPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
-  const [editSaving, setEditSaving] = useState(false);
+  const [view, setView] = useState('list');
 
   async function load() {
     setLoading(true);
@@ -60,39 +57,6 @@ export default function VacinacaoPage() {
     }
   }
 
-  function openEdit(record) {
-    setEditingRecord(record);
-    setEditForm({
-      vaccine: record.vaccine || '',
-      flockId: record.flockId || record.flock?.id || '',
-      date: record.date ? record.date.slice(0, 10) : '',
-      quantity: String(record.quantity ?? ''),
-      nextDoseDate: record.nextDoseDate ? record.nextDoseDate.slice(0, 10) : '',
-      notes: record.notes || '',
-    });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/vaccinations/${editingRecord.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Vacinação atualizada com sucesso.');
-      setEditingRecord(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar vacinação.');
-    } finally {
-      setEditSaving(false);
-    }
-  }
-
   const today = new Date();
   const upcoming = records.filter((r) => r.nextDoseDate && new Date(r.nextDoseDate) >= today &&
     new Date(r.nextDoseDate) <= new Date(today.getTime() + 7 * 86_400_000));
@@ -104,9 +68,12 @@ export default function VacinacaoPage() {
           <h1 className="font-display text-2xl text-ink-900">Vacinação</h1>
           <p className="text-sm text-ink-500 mt-1">Histórico de vacinas aplicadas e próximas doses.</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0}>
-          {showForm ? 'Cancelar' : 'Registrar vacinação'}
-        </button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0}>
+            {showForm ? 'Cancelar' : 'Registrar vacinação'}
+          </button>
+        </div>
       </div>
 
       {flocks.length === 0 && !loading && (
@@ -164,12 +131,14 @@ export default function VacinacaoPage() {
         </form>
       )}
 
-      <div className="card overflow-hidden">
-        {loading ? (
-          <div className="p-6 text-sm text-ink-500">Carregando...</div>
-        ) : records.length === 0 ? (
-          <EmptyState title="Não há dados registrados." />
-        ) : (
+      {loading ? (
+        <div className="card p-6 text-sm text-ink-500">Carregando...</div>
+      ) : records.length === 0 ? (
+        <EmptyState title="Não há dados registrados." />
+      ) : view === 'charts' ? (
+        <VaccinationCharts records={records} />
+      ) : (
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-ink-100/70 text-left text-xs uppercase tracking-wide text-ink-500">
@@ -179,7 +148,6 @@ export default function VacinacaoPage() {
                   <th className="px-4 py-3">Lote</th>
                   <th className="px-4 py-3">Quantidade</th>
                   <th className="px-4 py-3">Próxima dose</th>
-                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -190,57 +158,13 @@ export default function VacinacaoPage() {
                     <td className="px-4 py-3 text-ink-700">{r.flock?.name}</td>
                     <td className="px-4 py-3 text-ink-700">{r.quantity}</td>
                     <td className="px-4 py-3 text-ink-700">{r.nextDoseDate ? new Date(r.nextDoseDate).toLocaleDateString('pt-BR') : '—'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <EditButton onClick={() => openEdit(r)} />
-                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
-
-      <EditModal
-        open={!!editingRecord}
-        title="Editar vacinação"
-        onClose={() => setEditingRecord(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Vacina</label>
-          <input required className="input-field mt-1" value={editForm.vaccine}
-            onChange={(e) => setEditForm({ ...editForm, vaccine: e.target.value })} />
         </div>
-        <div>
-          <label className="label">Lote</label>
-          <select required className="input-field mt-1" value={editForm.flockId}
-            onChange={(e) => setEditForm({ ...editForm, flockId: e.target.value })}>
-            {flocks.map((f) => <option key={f.id} value={f.id}>{f.name} ({f.code})</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Data de aplicação</label>
-          <input required type="date" className="input-field mt-1" value={editForm.date}
-            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Quantidade aplicada</label>
-          <input required type="number" min="1" className="input-field mt-1" value={editForm.quantity}
-            onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Próxima aplicação</label>
-          <input type="date" className="input-field mt-1" value={editForm.nextDoseDate}
-            onChange={(e) => setEditForm({ ...editForm, nextDoseDate: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Observações</label>
-          <input className="input-field mt-1" value={editForm.notes}
-            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-        </div>
-      </EditModal>
+      )}
     </div>
   );
 }

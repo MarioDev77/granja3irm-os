@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
+import { ViewToggle } from '@/components/charts/ChartCard';
+import FeedConsumptionCharts from '@/components/charts/FeedConsumptionCharts';
 
 const emptyForm = { date: '', flockId: '', feedId: '', quantity: '', notes: '' };
 
@@ -16,16 +16,13 @@ export default function ConsumoRacaoPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
-  const [editSaving, setEditSaving] = useState(false);
+  const [view, setView] = useState('list');
 
   async function load() {
     setLoading(true);
     try {
       const [cRes, fRes, feedRes] = await Promise.all([
-        fetch('/api/feed-consumption'), fetch('/api/flocks'), fetch('/api/feeds'),
+        fetch('/api/feed-consumption?take=200'), fetch('/api/flocks'), fetch('/api/feeds'),
       ]);
       const cData = await cRes.json();
       const fData = await fRes.json();
@@ -73,46 +70,6 @@ export default function ConsumoRacaoPage() {
     }
   }
 
-  function openEdit(record) {
-    setEditingRecord(record);
-    setEditForm({
-      date: record.date ? record.date.slice(0, 10) : '',
-      flockId: record.flockId || record.flock?.id || '',
-      feedId: record.feedId || record.feed?.id || '',
-      quantity: String(record.quantity ?? ''),
-      notes: record.notes || '',
-    });
-  }
-
-  async function submitEdit(payload) {
-    const res = await fetch(`/api/feed-consumption/${editingRecord.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    return { res, data: await res.json() };
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      let { res, data } = await submitEdit(editForm);
-      if (!res.ok && data.error?.includes('Apenas um administrador')) {
-        const confirmNegative = window.confirm(`${data.error}\n\nAutorizar mesmo assim?`);
-        if (confirmNegative) ({ res, data } = await submitEdit({ ...editForm, authorizeNegative: true }));
-      }
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Consumo atualizado com sucesso. Estoque recalculado.');
-      setEditingRecord(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar consumo.');
-    } finally {
-      setEditSaving(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -120,9 +77,12 @@ export default function ConsumoRacaoPage() {
           <h1 className="font-display text-2xl text-ink-900">Consumo de ração</h1>
           <p className="text-sm text-ink-500 mt-1">Consumo diário por lote, com custo calculado automaticamente.</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0 || feeds.length === 0}>
-          {showForm ? 'Cancelar' : 'Registrar consumo'}
-        </button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0 || feeds.length === 0}>
+            {showForm ? 'Cancelar' : 'Registrar consumo'}
+          </button>
+        </div>
       </div>
 
       {(flocks.length === 0 || feeds.length === 0) && !loading && (
@@ -176,12 +136,14 @@ export default function ConsumoRacaoPage() {
         </form>
       )}
 
-      <div className="card overflow-hidden">
-        {loading ? (
-          <div className="p-6 text-sm text-ink-500">Carregando...</div>
-        ) : consumptions.length === 0 ? (
-          <EmptyState title="Não há dados registrados." />
-        ) : (
+      {loading ? (
+        <div className="card p-6 text-sm text-ink-500">Carregando...</div>
+      ) : consumptions.length === 0 ? (
+        <EmptyState title="Não há dados registrados." />
+      ) : view === 'charts' ? (
+        <FeedConsumptionCharts consumptions={consumptions} />
+      ) : (
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-ink-100/70 text-left text-xs uppercase tracking-wide text-ink-500">
@@ -192,7 +154,6 @@ export default function ConsumoRacaoPage() {
                   <th className="px-4 py-3">Quantidade</th>
                   <th className="px-4 py-3">Custo</th>
                   <th className="px-4 py-3">Custo/ave</th>
-                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -204,57 +165,13 @@ export default function ConsumoRacaoPage() {
                     <td className="px-4 py-3 text-ink-700">{Number(c.quantity).toLocaleString('pt-BR')} {c.feed?.unit}</td>
                     <td className="px-4 py-3 text-ink-700">{c.cost !== null ? `R$ ${c.cost.toFixed(2)}` : '—'}</td>
                     <td className="px-4 py-3 text-ink-700">{c.costPerBird !== null ? `R$ ${c.costPerBird.toFixed(2)}` : '—'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <EditButton onClick={() => openEdit(c)} />
-                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
-
-      <EditModal
-        open={!!editingRecord}
-        title="Editar consumo de ração"
-        onClose={() => setEditingRecord(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Data</label>
-          <input required type="date" className="input-field mt-1" value={editForm.date}
-            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
         </div>
-        <div>
-          <label className="label">Lote</label>
-          <select required className="input-field mt-1" value={editForm.flockId}
-            onChange={(e) => setEditForm({ ...editForm, flockId: e.target.value })}>
-            {flocks.map((f) => <option key={f.id} value={f.id}>{f.name} ({f.code})</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Ração</label>
-          <select required className="input-field mt-1" value={editForm.feedId}
-            onChange={(e) => setEditForm({ ...editForm, feedId: e.target.value })}>
-            {feeds.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Quantidade</label>
-          <input required type="number" min="0.01" step="0.01" className="input-field mt-1" value={editForm.quantity}
-            onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label">Observações</label>
-          <input className="input-field mt-1" value={editForm.notes}
-            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-        </div>
-        <p className="sm:col-span-2 text-xs text-ink-500">
-          Alterar a quantidade ou a ração recalcula automaticamente o estoque.
-        </p>
-      </EditModal>
+      )}
     </div>
   );
 }

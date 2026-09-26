@@ -72,9 +72,15 @@ export async function middleware(request) {
 export const config = {
   matcher: [
     /*
-     * Aplica o middleware a tudo, exceto /api (repassado ao back-end)
-     * e arquivos estáticos do Next.
+     * Aplica o middleware a tudo, exceto /api (repassado ao back-end),
+     * arquivos estáticos do Next (_next/static, _next/image) e qualquer
+     * arquivo público servido direto da pasta /public (logo, ícones,
+     * favicon etc.) — reconhecidos aqui por terem um "." no nome
+     * (granja-logo.png, icon.svg, apple-icon.png, ...). Sem essa exclusão,
+     * o middleware tentava proteger essas imagens como se fossem páginas e
+     * redirecionava para /login, quebrando a logo e o favicon para quem
+     * ainda não tinha sessão.
      */
-    '/((?!api/|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api/|_next/static|_next/image|.*\\..*).*)',
   ],
 };

@@ -1,37 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
-
-const particles = [
-  { className: 'particle particle-one' },
-  { className: 'particle particle-two' },
-  { className: 'particle particle-three' },
-  { className: 'particle particle-four' },
-  { className: 'particle particle-five' },
-  { className: 'particle particle-six' },
-  { className: 'particle particle-seven' },
-];
-
-function AnimatedParticlePanel() {
-  return (
-    <div className="visual-panel" aria-hidden="true">
-      <div className="visual-grid" />
-      <div className="orbit orbit-one" />
-      <div className="orbit orbit-two" />
-      {particles.map(({ className }) => (
-        <span key={className} className={className} />
-      ))}
-      <span className="glow-sphere sphere-large" />
-      <span className="glow-sphere sphere-small" />
-      <span className="vertical-line line-one" />
-      <span className="vertical-line line-two" />
-      <div className="visual-caption">GRANJA 3 IRMÃOS</div>
-    </div>
-  );
-}
+import { Eye, EyeOff, LockKeyhole, Loader2, Mail } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
@@ -73,28 +46,30 @@ function LoginForm() {
 
   return (
     <form className="login-form" onSubmit={handleSubmit}>
-      <div className="form-heading">
-        <p className="eyebrow">GRANJA 3 IRMÃOS / ACESSO</p>
-        <h1>Entrar</h1>
-        <p>Bem-vindo de volta. Informe suas credenciais para continuar.</p>
+      <div className="field-group">
+        <label htmlFor="email">E-mail</label>
+        <div className="input-with-icon">
+          <Mail size={19} aria-hidden="true" />
+          <input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="seuemail@granja.com.br"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
       </div>
-      <div className="fields">
-        <label htmlFor="email">Seu e-mail</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="seu.email@granja3irmaos.com.br"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <div className="password-label-row">
+
+      <div className="field-group">
+        <div className="field-label-row">
           <label htmlFor="password">Senha</label>
           <a href="/recuperar-senha">Esqueci minha senha</a>
         </div>
-        <div className="password-wrap">
+        <div className="input-with-icon password-field">
+          <LockKeyhole size={19} aria-hidden="true" />
           <input
             id="password"
             name="password"
@@ -107,29 +82,24 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <button
-            className="icon-button"
             type="button"
             onClick={() => setShowPassword((visible) => !visible)}
             aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
           >
-            {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
       </div>
-      <button className="submit-button" type="submit" disabled={isLoading}>
-        {isLoading ? (
-          <Loader2 className="spin" size={16} />
-        ) : (
-          <>
-            <span>Entrar</span>
-            <ArrowRight size={15} />
-          </>
-        )}
+
+      <button className="login-button" type="submit" disabled={isLoading}>
+        {isLoading ? <Loader2 className="spin" size={17} /> : 'Entrar'}
       </button>
+
       <p className={`form-message${messageType === 'success' ? ' success' : ''}${messageType === 'error' ? ' error' : ''}`} role="status">
         {message}
       </p>
-      <p className="signup-prompt">Acesso restrito. Em caso de dúvidas, contate o administrador da granja.</p>
+
+      <p className="help-text">Acesso restrito. Em caso de dúvidas, contate o administrador da granja.</p>
     </form>
   );
 }
@@ -137,16 +107,28 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <main className="login-page granja-login">
+      <div className="login-glow login-glow-top" aria-hidden="true" />
+      <div className="login-glow login-glow-bottom" aria-hidden="true" />
+
       <section className="login-card" aria-label="Área de autenticação">
-        <div className="window-dots" aria-hidden="true">
-          <span />
-          <span />
-          <span />
+        <div className="login-logo-wrap">
+          <Image
+            src="/granja-logo.png"
+            alt="Logo Granja Oliveira"
+            width={180}
+            height={180}
+            priority
+            className="login-logo"
+          />
         </div>
-        <div className="login-content">
-          <LoginForm />
+
+        <div className="form-heading">
+          <p className="form-eyebrow">GRANJA OLIVEIRA</p>
+          <h1>Login</h1>
+          <p>Acesse o sistema de gestão da sua propriedade.</p>
         </div>
-        <AnimatedParticlePanel />
+
+        <LoginForm />
       </section>
     </main>
   );

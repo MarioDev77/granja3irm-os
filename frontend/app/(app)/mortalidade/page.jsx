@@ -3,32 +3,40 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
+import { ViewToggle } from '@/components/charts/ChartCard';
+import OperationalCharts from '@/components/charts/OperationalCharts';
 
 const emptyForm = { date: '', flockId: '', quantity: '', reason: '', notes: '' };
 
 export default function MortalidadePage() {
   const [records, setRecords] = useState([]);
   const [flocks, setFlocks] = useState([]);
+  const [eggRecords, setEggRecords] = useState([]);
+  const [consumptionRecords, setConsumptionRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
-  const [editSaving, setEditSaving] = useState(false);
+  const [view, setView] = useState('list');
 
   async function load() {
     setLoading(true);
     try {
-      const [recordsRes, flocksRes] = await Promise.all([fetch('/api/mortality'), fetch('/api/flocks')]);
+      const [recordsRes, flocksRes, eggRes, consumptionRes] = await Promise.all([
+        fetch('/api/mortality?take=200'),
+        fetch('/api/flocks'),
+        fetch('/api/egg-production?take=200'),
+        fetch('/api/feed-consumption?take=200'),
+      ]);
       const recordsData = await recordsRes.json();
       const flocksData = await flocksRes.json();
+      const eggData = await eggRes.json();
+      const consumptionData = await consumptionRes.json();
       if (!recordsRes.ok) throw new Error(recordsData.error);
       setRecords(recordsData.records);
       setFlocks((flocksData.flocks || []).filter((f) => f.status === 'ACTIVE'));
+      setEggRecords(eggData.records || []);
+      setConsumptionRecords(consumptionData.consumptions || []);
     } catch (err) {
       toast.error(err.message || 'Erro ao carregar mortalidade.');
     } finally {
@@ -66,38 +74,6 @@ export default function MortalidadePage() {
     }
   }
 
-  function openEdit(record) {
-    setEditingRecord(record);
-    setEditForm({
-      date: record.date ? record.date.slice(0, 10) : '',
-      flockId: record.flockId || record.flock?.id || '',
-      quantity: String(record.quantity ?? ''),
-      reason: record.reason || '',
-      notes: record.notes || '',
-    });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/mortality/${editingRecord.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Registro de mortalidade atualizado com sucesso.');
-      setEditingRecord(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar registro.');
-    } finally {
-      setEditSaving(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -105,9 +81,12 @@ export default function MortalidadePage() {
           <h1 className="font-display text-2xl text-ink-900">Mortalidade</h1>
           <p className="text-sm text-ink-500 mt-1">Registro diário de mortes por lote.</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0}>
-          {showForm ? 'Cancelar' : 'Registrar mortalidade'}
-        </button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0}>
+            {showForm ? 'Cancelar' : 'Registrar mortalidade'}
+          </button>
+        </div>
       </div>
 
       {flocks.length === 0 && !loading && (
@@ -154,12 +133,14 @@ export default function MortalidadePage() {
         </form>
       )}
 
-      <div className="card overflow-hidden">
-        {loading ? (
-          <div className="p-6 text-sm text-ink-500">Carregando...</div>
-        ) : records.length === 0 ? (
-          <EmptyState title="Não há dados registrados." />
-        ) : (
+      {loading ? (
+        <div className="card p-6 text-sm text-ink-500">Carregando...</div>
+      ) : view === 'charts' ? (
+        <OperationalCharts mortalityRecords={records} eggRecords={eggRecords} consumptionRecords={consumptionRecords} />
+      ) : records.length === 0 ? (
+        <EmptyState title="Não há dados registrados." />
+      ) : (
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-ink-100/70 text-left text-xs uppercase tracking-wide text-ink-500">
@@ -169,7 +150,6 @@ export default function MortalidadePage() {
                   <th className="px-4 py-3">Quantidade</th>
                   <th className="px-4 py-3">Motivo</th>
                   <th className="px-4 py-3">Responsável</th>
-                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -180,52 +160,13 @@ export default function MortalidadePage() {
                     <td className="px-4 py-3 text-ink-700">{r.quantity}</td>
                     <td className="px-4 py-3 text-ink-700">{r.reason || '—'}</td>
                     <td className="px-4 py-3 text-ink-500 text-xs">{r.responsible?.name}</td>
-                    <td className="px-4 py-3 text-right">
-                      <EditButton onClick={() => openEdit(r)} />
-                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </div>
-
-      <EditModal
-        open={!!editingRecord}
-        title="Editar registro de mortalidade"
-        onClose={() => setEditingRecord(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Data</label>
-          <input required type="date" className="input-field mt-1" value={editForm.date}
-            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
         </div>
-        <div>
-          <label className="label">Lote</label>
-          <select required className="input-field mt-1" value={editForm.flockId}
-            onChange={(e) => setEditForm({ ...editForm, flockId: e.target.value })}>
-            {flocks.map((f) => <option key={f.id} value={f.id}>{f.name} ({f.code})</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Quantidade</label>
-          <input required type="number" min="1" className="input-field mt-1" value={editForm.quantity}
-            onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Motivo</label>
-          <input className="input-field mt-1" value={editForm.reason}
-            onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })} />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label">Observações</label>
-          <input className="input-field mt-1" value={editForm.notes}
-            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-        </div>
-      </EditModal>
+      )}
     </div>
   );
 }

@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
 
 const emptyForm = { feedId: '', type: 'IN', quantity: '', unitValue: '', document: '', date: '', notes: '' };
 
@@ -15,10 +13,6 @@ export default function EstoqueRacaoPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  const [editingMovement, setEditingMovement] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
-  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -71,48 +65,6 @@ export default function EstoqueRacaoPage() {
       toast.error(err.message || 'Erro ao registrar movimentação.');
     } finally {
       setSaving(false);
-    }
-  }
-
-  function openEdit(movement) {
-    setEditingMovement(movement);
-    setEditForm({
-      feedId: movement.feedId || movement.feed?.id || '',
-      type: movement.type || 'IN',
-      quantity: String(movement.quantity ?? ''),
-      unitValue: movement.unitValue !== null && movement.unitValue !== undefined ? String(movement.unitValue) : '',
-      document: movement.document || '',
-      date: movement.date ? movement.date.slice(0, 10) : '',
-      notes: movement.notes || '',
-    });
-  }
-
-  async function submitEdit(payload) {
-    const res = await fetch(`/api/feed-movements/${editingMovement.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    return { res, data: await res.json() };
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      let { res, data } = await submitEdit(editForm);
-      if (!res.ok && data.error?.includes('Apenas um administrador')) {
-        const confirmNegative = window.confirm(`${data.error}\n\nAutorizar mesmo assim?`);
-        if (confirmNegative) ({ res, data } = await submitEdit({ ...editForm, authorizeNegative: true }));
-      }
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Movimentação atualizada com sucesso. Estoque recalculado.');
-      setEditingMovement(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar movimentação.');
-    } finally {
-      setEditSaving(false);
     }
   }
 
@@ -204,7 +156,6 @@ export default function EstoqueRacaoPage() {
                   <th className="px-4 py-3">Tipo</th>
                   <th className="px-4 py-3">Quantidade</th>
                   <th className="px-4 py-3">Responsável</th>
-                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -219,9 +170,6 @@ export default function EstoqueRacaoPage() {
                     </td>
                     <td className="px-4 py-3 text-ink-700">{Number(m.quantity).toLocaleString('pt-BR')} {m.feed?.unit}</td>
                     <td className="px-4 py-3 text-ink-500 text-xs">{m.responsible?.name}</td>
-                    <td className="px-4 py-3 text-right">
-                      <EditButton onClick={() => openEdit(m)} />
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -229,62 +177,6 @@ export default function EstoqueRacaoPage() {
           </div>
         )}
       </div>
-
-      <EditModal
-        open={!!editingMovement}
-        title="Editar movimentação de ração"
-        onClose={() => setEditingMovement(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Ração</label>
-          <select required className="input-field mt-1" value={editForm.feedId}
-            onChange={(e) => setEditForm({ ...editForm, feedId: e.target.value })}>
-            {feeds.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Tipo</label>
-          <select className="input-field mt-1" value={editForm.type}
-            onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}>
-            <option value="IN">Entrada</option>
-            <option value="OUT">Saída</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">Quantidade</label>
-          <input required type="number" min="0.01" step="0.01" className="input-field mt-1" value={editForm.quantity}
-            onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Data</label>
-          <input required type="date" className="input-field mt-1" value={editForm.date}
-            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
-        </div>
-        {editForm.type === 'IN' && (
-          <>
-            <div>
-              <label className="label">Valor unitário (R$)</label>
-              <input type="number" min="0" step="0.01" className="input-field mt-1" value={editForm.unitValue}
-                onChange={(e) => setEditForm({ ...editForm, unitValue: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">Nota/documento</label>
-              <input className="input-field mt-1" value={editForm.document}
-                onChange={(e) => setEditForm({ ...editForm, document: e.target.value })} />
-            </div>
-          </>
-        )}
-        <div className="sm:col-span-2">
-          <label className="label">Observações</label>
-          <input className="input-field mt-1" value={editForm.notes}
-            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-        </div>
-        <p className="sm:col-span-2 text-xs text-ink-500">
-          Alterar tipo, quantidade ou ração recalcula automaticamente o estoque.
-        </p>
-      </EditModal>
     </div>
   );
 }

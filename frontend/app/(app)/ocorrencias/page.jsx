@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
 
 const emptyForm = { issue: '', flockId: '', affectedQuantity: '', symptoms: '', treatment: '', date: '', notes: '' };
 
@@ -15,10 +13,6 @@ export default function OcorrenciasPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
-  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -57,40 +51,6 @@ export default function OcorrenciasPage() {
       toast.error(err.message || 'Erro ao registrar ocorrência.');
     } finally {
       setSaving(false);
-    }
-  }
-
-  function openEdit(record) {
-    setEditingRecord(record);
-    setEditForm({
-      issue: record.issue || '',
-      flockId: record.flockId || record.flock?.id || '',
-      affectedQuantity: record.affectedQuantity !== null && record.affectedQuantity !== undefined ? String(record.affectedQuantity) : '',
-      symptoms: record.symptoms || '',
-      treatment: record.treatment || '',
-      date: record.date ? record.date.slice(0, 10) : '',
-      notes: record.notes || '',
-    });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/health-records/${editingRecord.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Ocorrência atualizada com sucesso.');
-      setEditingRecord(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar ocorrência.');
-    } finally {
-      setEditSaving(false);
     }
   }
 
@@ -175,7 +135,6 @@ export default function OcorrenciasPage() {
                   <th className="px-4 py-3">Lote</th>
                   <th className="px-4 py-3">Qtd. afetada</th>
                   <th className="px-4 py-3">Tratamento</th>
-                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -186,9 +145,6 @@ export default function OcorrenciasPage() {
                     <td className="px-4 py-3 text-ink-700">{r.flock?.name}</td>
                     <td className="px-4 py-3 text-ink-700">{r.affectedQuantity ?? '—'}</td>
                     <td className="px-4 py-3 text-ink-700">{r.treatment || '—'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <EditButton onClick={() => openEdit(r)} />
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -196,52 +152,6 @@ export default function OcorrenciasPage() {
           </div>
         )}
       </div>
-
-      <EditModal
-        open={!!editingRecord}
-        title="Editar ocorrência"
-        onClose={() => setEditingRecord(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Doença/problema</label>
-          <input required className="input-field mt-1" value={editForm.issue}
-            onChange={(e) => setEditForm({ ...editForm, issue: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Lote</label>
-          <select required className="input-field mt-1" value={editForm.flockId}
-            onChange={(e) => setEditForm({ ...editForm, flockId: e.target.value })}>
-            {flocks.map((f) => <option key={f.id} value={f.id}>{f.name} ({f.code})</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Quantidade afetada</label>
-          <input type="number" min="0" className="input-field mt-1" value={editForm.affectedQuantity}
-            onChange={(e) => setEditForm({ ...editForm, affectedQuantity: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Data</label>
-          <input required type="date" className="input-field mt-1" value={editForm.date}
-            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Sintomas</label>
-          <input className="input-field mt-1" value={editForm.symptoms}
-            onChange={(e) => setEditForm({ ...editForm, symptoms: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Tratamento</label>
-          <input className="input-field mt-1" value={editForm.treatment}
-            onChange={(e) => setEditForm({ ...editForm, treatment: e.target.value })} />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label">Observações</label>
-          <input className="input-field mt-1" value={editForm.notes}
-            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-        </div>
-      </EditModal>
     </div>
   );
 }

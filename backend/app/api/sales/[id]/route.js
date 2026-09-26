@@ -5,13 +5,8 @@ import { SECTIONS, ROLES } from '@/lib/rbac';
 import { requireSection, badRequest, notFound } from '@/lib/apiAuth';
 
 const updateSchema = z.object({
-  status: z.enum(['PENDING', 'COMPLETED', 'CANCELED']).optional(),
+  status: z.enum(['PENDING', 'COMPLETED', 'CANCELED']),
   authorizeNegative: z.boolean().optional(),
-  date: z.string().min(1).optional(),
-  paymentMethod: z.string().optional().nullable(),
-  dueDate: z.string().optional().nullable(),
-  discount: z.coerce.number().min(0).optional(),
-  notes: z.string().optional().nullable(),
 });
 
 const INCREASE_TYPES = new Set(['IN', 'RETURN']);
@@ -40,26 +35,20 @@ export async function PATCH(request, { params: __p }) {
   if (!sale) return notFound('Venda não encontrada.');
 
   const { rows: items } = await query('SELECT * FROM sale_items WHERE sale_id = $1', [params.id]);
-  const { status, authorizeNegative, date, paymentMethod, dueDate, discount, notes } = parsed.data;
 
-  if (sale.status === 'COMPLETED' && status !== undefined && status !== 'COMPLETED') {
+  if (sale.status === 'COMPLETED' && parsed.data.status !== 'COMPLETED') {
     return badRequest('Uma venda já confirmada não pode voltar para outro status (o estoque já foi atualizado).');
   }
 
-  const editingHeader = date !== undefined || paymentMethod !== undefined || dueDate !== undefined || discount !== undefined || notes !== undefined;
-  if (editingHeader && sale.status === 'COMPLETED') {
-    return badRequest('Uma venda já confirmada não pode ter seus dados alterados. Apenas o status pode mudar.');
-  }
-
-  const itemsTotal = items.reduce((sum, i) => sum + Number(i.quantity) * Number(i.unit_price), 0);
-  const finalDiscount = discount ?? Number(sale.discount);
-  const finalTotalValue = Math.max(0, itemsTotal - finalDiscount);
-
-  if (status === 'COMPLETED' && sale.status !== 'COMPLETED') {
+  if (parsed.data.status === 'COMPLETED' && sale.status !== 'COMPLETED') {
+    // Verifica estoque de ovos suficiente para todos os itens com tamanho definido.
     for (const item of items) {
       if (item.egg_size) {
         const stock = await currentEggStock(item.egg_size);
-        if (stock - Number(item.quantity) < 0 && !(authorizeNegative && session.user.role === ROLES.ADMIN)) {
+        if (
+          stock - Number(item.quantity) < 0 &&
+          !(parsed.data.authorizeNegative && session.user.role === ROLES.ADMIN)
+        ) {
           return badRequest(
             `Estoque de ovos (${item.egg_size}) insuficiente para confirmar esta venda. Apenas um administrador pode autorizar.`
           );
@@ -80,38 +69,7 @@ export async function PATCH(request, { params: __p }) {
       }
     });
   } else {
-    await withTransaction(async (client) => {
-      await client.query(
-        `UPDATE sales SET
-           date = $1, payment_method = $2, discount = $3, total_value = $4, notes = $5, status = $6, updated_at = now()
-         WHERE id = $7`,
-        [
-          date ? new Date(date) : sale.date,
-          paymentMethod !== undefined ? paymentMethod : sale.payment_method,
-          finalDiscount,
-          finalTotalValue,
-          notes !== undefined ? notes : sale.notes,
-          status ?? sale.status,
-          params.id,
-        ]
-      );
-
-      if (editingHeader) {
-        if (dueDate !== undefined) {
-          await client.query(
-            `UPDATE accounts_receivable SET value = $1, due_date = $2, updated_at = now()
-             WHERE sale_id = $3 AND status = 'OPEN'`,
-            [finalTotalValue, dueDate ? new Date(dueDate) : null, params.id]
-          );
-        } else {
-          await client.query(
-            `UPDATE accounts_receivable SET value = $1, updated_at = now()
-             WHERE sale_id = $2 AND status = 'OPEN'`,
-            [finalTotalValue, params.id]
-          );
-        }
-      }
-    });
+    await query(`UPDATE sales SET status = $1, updated_at = now() WHERE id = $2`, [parsed.data.status, params.id]);
   }
 
   await query(
@@ -119,9 +77,8 @@ export async function PATCH(request, { params: __p }) {
      VALUES ($1, $2, 'UPDATE', 'Sale', $3, $4, $5, $6)`,
     [
       genId(), session.user.id, sale.id,
-      JSON.stringify({ status: sale.status, discount: sale.discount }),
-      JSON.stringify(parsed.data),
-      `${session.user.name} atualizou a venda para ${sale.customer_name}.`,
+      JSON.stringify({ status: sale.status }), JSON.stringify({ status: parsed.data.status }),
+      `${session.user.name} atualizou a venda para ${sale.customer_name} para o status ${parsed.data.status}.`,
     ]
   );
 

@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
 import { ROLE_LABELS } from '@/lib/rbac';
 
 const ROLE_OPTIONS = ['ADMIN', 'MANAGER', 'EMPLOYEE', 'FINANCE'];
@@ -18,10 +16,6 @@ export default function UsersPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-
-  const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', phone: '', password: '' });
-  const [editSaving, setEditSaving] = useState(false);
 
   async function loadUsers() {
     setLoading(true);
@@ -106,36 +100,6 @@ export default function UsersPage() {
       loadUsers();
     } catch (err) {
       toast.error(err.message || 'Erro ao excluir usuário.');
-    }
-  }
-
-  // Perfil e status já podem ser trocados direto na tabela; o modal cobre o
-  // que faltava: nome, telefone e redefinição de senha.
-  function openEdit(user) {
-    setEditingUser(user);
-    setEditForm({ name: user.name || '', phone: user.phone || '', password: '' });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const payload = { name: editForm.name, phone: editForm.phone };
-      if (editForm.password) payload.password = editForm.password;
-      const res = await fetch(`/api/users/${editingUser.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Usuário atualizado com sucesso.');
-      setEditingUser(null);
-      loadUsers();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar usuário.');
-    } finally {
-      setEditSaving(false);
     }
   }
 
@@ -284,15 +248,12 @@ export default function UsersPage() {
                           </button>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-3">
-                          <EditButton onClick={() => openEdit(user)} />
-                          <button
-                            onClick={() => setConfirmDeleteId(user.id)}
-                            className="text-xs text-clay-700 hover:underline"
-                          >
-                            Excluir
-                          </button>
-                        </span>
+                        <button
+                          onClick={() => setConfirmDeleteId(user.id)}
+                          className="text-xs text-clay-700 hover:underline"
+                        >
+                          Excluir
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -302,31 +263,6 @@ export default function UsersPage() {
           </div>
         )}
       </div>
-
-      <EditModal
-        open={!!editingUser}
-        title="Editar usuário"
-        onClose={() => setEditingUser(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Nome completo</label>
-          <input required className="input-field mt-1" value={editForm.name}
-            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Telefone</label>
-          <input className="input-field mt-1" value={editForm.phone}
-            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label">Nova senha (opcional)</label>
-          <input type="password" minLength={8} className="input-field mt-1" value={editForm.password}
-            onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-            placeholder="Deixe em branco para manter a senha atual" />
-        </div>
-      </EditModal>
     </div>
   );
 }

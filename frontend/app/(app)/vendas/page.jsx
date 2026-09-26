@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
 
 const emptyItem = { product: '', eggSize: '', quantity: '', unitPrice: '' };
 const emptyForm = { customerId: '', date: '', paymentMethod: '', dueDate: '', discount: '0', notes: '' };
@@ -19,10 +17,6 @@ export default function VendasPage() {
   const [form, setForm] = useState(emptyForm);
   const [items, setItems] = useState([{ ...emptyItem }]);
   const [saving, setSaving] = useState(false);
-
-  const [editingSale, setEditingSale] = useState(null);
-  const [editForm, setEditForm] = useState({ date: '', paymentMethod: '', dueDate: '', discount: '0', notes: '' });
-  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -95,41 +89,6 @@ export default function VendasPage() {
     if (!res.ok) return toast.error(data.error);
     toast.success('Venda confirmada. Estoque atualizado.');
     load();
-  }
-
-  // Os itens não podem ser editados depois de lançados; apenas os dados do
-  // cabeçalho, e só enquanto a venda ainda estiver pendente (antes de
-  // confirmada e já refletida no estoque de ovos).
-  function openEdit(sale) {
-    setEditingSale(sale);
-    setEditForm({
-      date: sale.date ? sale.date.slice(0, 10) : '',
-      paymentMethod: sale.paymentMethod || '',
-      dueDate: sale.dueDate ? sale.dueDate.slice(0, 10) : '',
-      discount: String(sale.discount ?? '0'),
-      notes: sale.notes || '',
-    });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/sales/${editingSale.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Venda atualizada com sucesso.');
-      setEditingSale(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar venda.');
-    } finally {
-      setEditSaving(false);
-    }
   }
 
   const itemsTotal = items.reduce((sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0), 0);
@@ -277,12 +236,9 @@ export default function VendasPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {s.status === 'PENDING' && (
-                        <div className="flex items-center justify-end gap-3">
-                          <button onClick={() => confirmSale(s)} className="text-xs text-olive-700 hover:underline">
-                            Confirmar venda
-                          </button>
-                          <EditButton onClick={() => openEdit(s)} />
-                        </div>
+                        <button onClick={() => confirmSale(s)} className="text-xs text-olive-700 hover:underline">
+                          Confirmar venda
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -292,43 +248,6 @@ export default function VendasPage() {
           </div>
         )}
       </div>
-
-      <EditModal
-        open={!!editingSale}
-        title="Editar venda"
-        onClose={() => setEditingSale(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Data</label>
-          <input required type="date" className="input-field mt-1" value={editForm.date}
-            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Forma de pagamento</label>
-          <input className="input-field mt-1" value={editForm.paymentMethod}
-            onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Vencimento</label>
-          <input type="date" className="input-field mt-1" value={editForm.dueDate}
-            onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Desconto (R$)</label>
-          <input type="number" min="0" step="0.01" className="input-field mt-1" value={editForm.discount}
-            onChange={(e) => setEditForm({ ...editForm, discount: e.target.value })} />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label">Observações</label>
-          <input className="input-field mt-1" value={editForm.notes}
-            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-        </div>
-        <p className="sm:col-span-2 text-xs text-ink-500">
-          Os itens da venda não podem ser alterados depois de lançados. Para corrigir um item, cancele esta venda e registre uma nova.
-        </p>
-      </EditModal>
     </div>
   );
 }

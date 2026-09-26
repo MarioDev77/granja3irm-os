@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
-import EditButton from '@/components/EditButton';
-import EditModal from '@/components/EditModal';
 
 const emptyForm = { name: '', document: '', phone: '', email: '', address: '', type: 'INDIVIDUAL', notes: '' };
 const TYPE_LABELS = {
@@ -18,10 +16,6 @@ export default function ClientesPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
-
-  const [editingCustomer, setEditingCustomer] = useState(null);
-  const [editForm, setEditForm] = useState(emptyForm);
-  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -58,40 +52,6 @@ export default function ClientesPage() {
       toast.error(err.message || 'Erro ao cadastrar cliente.');
     } finally {
       setSaving(false);
-    }
-  }
-
-  function openEdit(customer) {
-    setEditingCustomer(customer);
-    setEditForm({
-      name: customer.name || '',
-      document: customer.document || '',
-      phone: customer.phone || '',
-      email: customer.email || '',
-      address: customer.address || '',
-      type: customer.type || 'INDIVIDUAL',
-      notes: customer.notes || '',
-    });
-  }
-
-  async function handleEditSubmit(e) {
-    e.preventDefault();
-    setEditSaving(true);
-    try {
-      const res = await fetch(`/api/customers/${editingCustomer.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      toast.success('Cliente atualizado com sucesso.');
-      setEditingCustomer(null);
-      load();
-    } catch (err) {
-      toast.error(err.message || 'Erro ao atualizar cliente.');
-    } finally {
-      setEditSaving(false);
     }
   }
 
@@ -163,7 +123,6 @@ export default function ClientesPage() {
                   <th className="px-4 py-3">Tipo</th>
                   <th className="px-4 py-3">Telefone</th>
                   <th className="px-4 py-3">Vendas</th>
-                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -173,9 +132,6 @@ export default function ClientesPage() {
                     <td className="px-4 py-3 text-ink-700">{TYPE_LABELS[c.type]}</td>
                     <td className="px-4 py-3 text-ink-700">{c.phone || '—'}</td>
                     <td className="px-4 py-3 text-ink-700">{c._count?.sales ?? 0}</td>
-                    <td className="px-4 py-3 text-right">
-                      <EditButton onClick={() => openEdit(c)} />
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -183,52 +139,6 @@ export default function ClientesPage() {
           </div>
         )}
       </div>
-
-      <EditModal
-        open={!!editingCustomer}
-        title="Editar cliente"
-        onClose={() => setEditingCustomer(null)}
-        onSubmit={handleEditSubmit}
-        saving={editSaving}
-      >
-        <div>
-          <label className="label">Nome</label>
-          <input required className="input-field mt-1" value={editForm.name}
-            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Tipo</label>
-          <select className="input-field mt-1" value={editForm.type}
-            onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}>
-            {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">CPF/CNPJ</label>
-          <input className="input-field mt-1" value={editForm.document}
-            onChange={(e) => setEditForm({ ...editForm, document: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Telefone</label>
-          <input className="input-field mt-1" value={editForm.phone}
-            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">E-mail</label>
-          <input type="email" className="input-field mt-1" value={editForm.email}
-            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
-        </div>
-        <div>
-          <label className="label">Endereço</label>
-          <input className="input-field mt-1" value={editForm.address}
-            onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label">Observações</label>
-          <input className="input-field mt-1" value={editForm.notes}
-            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-        </div>
-      </EditModal>
     </div>
   );
 }
