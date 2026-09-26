@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
+import { ViewToggle } from '@/components/charts/ChartCard';
+import FeedConsumptionCharts from '@/components/charts/FeedConsumptionCharts';
 
 const emptyForm = { date: '', flockId: '', feedId: '', quantity: '', notes: '' };
 
@@ -14,12 +16,13 @@ export default function ConsumoRacaoPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [view, setView] = useState('list');
 
   async function load() {
     setLoading(true);
     try {
       const [cRes, fRes, feedRes] = await Promise.all([
-        fetch('/api/feed-consumption'), fetch('/api/flocks'), fetch('/api/feeds'),
+        fetch('/api/feed-consumption?take=200'), fetch('/api/flocks'), fetch('/api/feeds'),
       ]);
       const cData = await cRes.json();
       const fData = await fRes.json();
@@ -74,9 +77,12 @@ export default function ConsumoRacaoPage() {
           <h1 className="font-display text-2xl text-ink-900">Consumo de ração</h1>
           <p className="text-sm text-ink-500 mt-1">Consumo diário por lote, com custo calculado automaticamente.</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0 || feeds.length === 0}>
-          {showForm ? 'Cancelar' : 'Registrar consumo'}
-        </button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0 || feeds.length === 0}>
+            {showForm ? 'Cancelar' : 'Registrar consumo'}
+          </button>
+        </div>
       </div>
 
       {(flocks.length === 0 || feeds.length === 0) && !loading && (
@@ -130,12 +136,14 @@ export default function ConsumoRacaoPage() {
         </form>
       )}
 
-      <div className="card overflow-hidden">
-        {loading ? (
-          <div className="p-6 text-sm text-ink-500">Carregando...</div>
-        ) : consumptions.length === 0 ? (
-          <EmptyState title="Não há dados registrados." />
-        ) : (
+      {loading ? (
+        <div className="card p-6 text-sm text-ink-500">Carregando...</div>
+      ) : consumptions.length === 0 ? (
+        <EmptyState title="Não há dados registrados." />
+      ) : view === 'charts' ? (
+        <FeedConsumptionCharts consumptions={consumptions} />
+      ) : (
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-ink-100/70 text-left text-xs uppercase tracking-wide text-ink-500">
@@ -162,8 +170,8 @@ export default function ConsumoRacaoPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

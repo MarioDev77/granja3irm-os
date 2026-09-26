@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
+import { ViewToggle } from '@/components/charts/ChartCard';
+import VaccinationCharts from '@/components/charts/VaccinationCharts';
 
 const emptyForm = { vaccine: '', flockId: '', date: '', quantity: '', nextDoseDate: '', notes: '' };
 
@@ -13,6 +15,7 @@ export default function VacinacaoPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [view, setView] = useState('list');
 
   async function load() {
     setLoading(true);
@@ -65,9 +68,12 @@ export default function VacinacaoPage() {
           <h1 className="font-display text-2xl text-ink-900">Vacinação</h1>
           <p className="text-sm text-ink-500 mt-1">Histórico de vacinas aplicadas e próximas doses.</p>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0}>
-          {showForm ? 'Cancelar' : 'Registrar vacinação'}
-        </button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={view} onChange={setView} />
+          <button className="btn-primary" onClick={() => setShowForm((v) => !v)} disabled={flocks.length === 0}>
+            {showForm ? 'Cancelar' : 'Registrar vacinação'}
+          </button>
+        </div>
       </div>
 
       {flocks.length === 0 && !loading && (
@@ -125,12 +131,14 @@ export default function VacinacaoPage() {
         </form>
       )}
 
-      <div className="card overflow-hidden">
-        {loading ? (
-          <div className="p-6 text-sm text-ink-500">Carregando...</div>
-        ) : records.length === 0 ? (
-          <EmptyState title="Não há dados registrados." />
-        ) : (
+      {loading ? (
+        <div className="card p-6 text-sm text-ink-500">Carregando...</div>
+      ) : records.length === 0 ? (
+        <EmptyState title="Não há dados registrados." />
+      ) : view === 'charts' ? (
+        <VaccinationCharts records={records} />
+      ) : (
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-ink-100/70 text-left text-xs uppercase tracking-wide text-ink-500">
@@ -155,8 +163,8 @@ export default function VacinacaoPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
