@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
+import EditButton from '@/components/EditButton';
+import EditModal from '@/components/EditModal';
 
 const emptyForm = { name: '', type: 'LAYING', manufacturer: '', unit: 'kg', minimumStock: '0', averagePrice: '', notes: '' };
 const TYPE_LABELS = { INITIAL: 'Inicial', GROWTH: 'Crescimento', LAYING: 'Postura', BREEDING: 'Reprodução', OTHER: 'Outra' };
@@ -13,6 +15,10 @@ export default function RacoesPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  const [editingFeed, setEditingFeed] = useState(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -49,6 +55,41 @@ export default function RacoesPage() {
       toast.error(err.message || 'Erro ao cadastrar ração.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  // A edição de rações não altera tipo nem unidade (usadas em movimentações
+  // já lançadas); apenas os campos que fazem sentido corrigir depois do
+  // cadastro (ver backend: PATCH /api/feeds/:id).
+  function openEdit(feed) {
+    setEditingFeed(feed);
+    setEditForm({
+      name: feed.name || '',
+      manufacturer: feed.manufacturer || '',
+      minimumStock: String(feed.minimumStock ?? '0'),
+      averagePrice: feed.averagePrice !== null && feed.averagePrice !== undefined ? String(feed.averagePrice) : '',
+      notes: feed.notes || '',
+    });
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/feeds/${editingFeed.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Ração atualizada com sucesso.');
+      setEditingFeed(null);
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Erro ao atualizar ração.');
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -126,6 +167,7 @@ export default function RacoesPage() {
                   <th className="px-4 py-3">Estoque atual</th>
                   <th className="px-4 py-3">Estoque mínimo</th>
                   <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -144,6 +186,9 @@ export default function RacoesPage() {
                           <span className="text-xs font-medium px-2 py-1 rounded bg-olive-100 text-olive-700">OK</span>
                         )}
                       </td>
+                      <td className="px-4 py-3 text-right">
+                        <EditButton onClick={() => openEdit(f)} />
+                      </td>
                     </tr>
                   );
                 })}
@@ -152,6 +197,40 @@ export default function RacoesPage() {
           </div>
         )}
       </div>
+
+      <EditModal
+        open={!!editingFeed}
+        title="Editar ração"
+        onClose={() => setEditingFeed(null)}
+        onSubmit={handleEditSubmit}
+        saving={editSaving}
+      >
+        <div>
+          <label className="label">Nome</label>
+          <input required className="input-field mt-1" value={editForm.name}
+            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Fabricante</label>
+          <input className="input-field mt-1" value={editForm.manufacturer}
+            onChange={(e) => setEditForm({ ...editForm, manufacturer: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Estoque mínimo</label>
+          <input type="number" min="0" step="0.01" className="input-field mt-1" value={editForm.minimumStock}
+            onChange={(e) => setEditForm({ ...editForm, minimumStock: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Preço médio</label>
+          <input type="number" min="0" step="0.01" className="input-field mt-1" value={editForm.averagePrice}
+            onChange={(e) => setEditForm({ ...editForm, averagePrice: e.target.value })} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="label">Observações</label>
+          <input className="input-field mt-1" value={editForm.notes}
+            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+        </div>
+      </EditModal>
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import EmptyState from '@/components/EmptyState';
+import EditButton from '@/components/EditButton';
+import EditModal from '@/components/EditModal';
 
 const emptyForm = { name: '', document: '', phone: '', email: '', address: '', products: '', notes: '' };
 
@@ -12,6 +14,10 @@ export default function FornecedoresPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  const [editingSupplier, setEditingSupplier] = useState(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const [editSaving, setEditSaving] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -48,6 +54,40 @@ export default function FornecedoresPage() {
       toast.error(err.message || 'Erro ao cadastrar fornecedor.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  function openEdit(supplier) {
+    setEditingSupplier(supplier);
+    setEditForm({
+      name: supplier.name || '',
+      document: supplier.document || '',
+      phone: supplier.phone || '',
+      email: supplier.email || '',
+      address: supplier.address || '',
+      products: supplier.products || '',
+      notes: supplier.notes || '',
+    });
+  }
+
+  async function handleEditSubmit(e) {
+    e.preventDefault();
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/suppliers/${editingSupplier.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      toast.success('Fornecedor atualizado com sucesso.');
+      setEditingSupplier(null);
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Erro ao atualizar fornecedor.');
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -117,6 +157,7 @@ export default function FornecedoresPage() {
                   <th className="px-4 py-3">Telefone</th>
                   <th className="px-4 py-3">Produtos</th>
                   <th className="px-4 py-3">Compras</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -126,6 +167,9 @@ export default function FornecedoresPage() {
                     <td className="px-4 py-3 text-ink-700">{s.phone || '—'}</td>
                     <td className="px-4 py-3 text-ink-700">{s.products || '—'}</td>
                     <td className="px-4 py-3 text-ink-700">{s._count?.purchases ?? 0}</td>
+                    <td className="px-4 py-3 text-right">
+                      <EditButton onClick={() => openEdit(s)} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -133,6 +177,50 @@ export default function FornecedoresPage() {
           </div>
         )}
       </div>
+
+      <EditModal
+        open={!!editingSupplier}
+        title="Editar fornecedor"
+        onClose={() => setEditingSupplier(null)}
+        onSubmit={handleEditSubmit}
+        saving={editSaving}
+      >
+        <div>
+          <label className="label">Nome</label>
+          <input required className="input-field mt-1" value={editForm.name}
+            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">CPF/CNPJ</label>
+          <input className="input-field mt-1" value={editForm.document}
+            onChange={(e) => setEditForm({ ...editForm, document: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Telefone</label>
+          <input className="input-field mt-1" value={editForm.phone}
+            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">E-mail</label>
+          <input type="email" className="input-field mt-1" value={editForm.email}
+            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Endereço</label>
+          <input className="input-field mt-1" value={editForm.address}
+            onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} />
+        </div>
+        <div>
+          <label className="label">Produtos fornecidos</label>
+          <input className="input-field mt-1" value={editForm.products}
+            onChange={(e) => setEditForm({ ...editForm, products: e.target.value })} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="label">Observações</label>
+          <input className="input-field mt-1" value={editForm.notes}
+            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+        </div>
+      </EditModal>
     </div>
   );
 }

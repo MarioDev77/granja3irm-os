@@ -5,11 +5,20 @@ import { SECTIONS } from '@/lib/rbac';
 import { requireSection, badRequest, notFound } from '@/lib/apiAuth';
 
 const updateSchema = z.object({
+  identifier: z.string().min(1).optional(),
+  sex: z.enum(['MALE', 'FEMALE', 'UNKNOWN']).optional(),
+  breed: z.string().optional().nullable(),
   status: z.enum(['ACTIVE', 'SOLD', 'DEAD', 'DISCARDED', 'TRANSFERRED']).optional(),
   flockId: z.string().optional(),
 });
 
-const COLUMN_BY_FIELD = { status: 'status', flockId: 'flock_id' };
+const COLUMN_BY_FIELD = {
+  identifier: 'identifier',
+  sex: 'sex',
+  breed: 'breed',
+  status: 'status',
+  flockId: 'flock_id',
+};
 
 export async function PATCH(request, { params: __p }) {
   const params = await __p;
