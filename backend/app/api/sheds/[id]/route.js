@@ -32,7 +32,11 @@ export async function PATCH(request, { params: __p }) {
   const parsed = updateSchema.safeParse(await request.json());
   if (!parsed.success) return badRequest(parsed.error.errors[0].message);
 
-  const { rows: existingRows } = await query('SELECT * FROM sheds WHERE id = $1', [params.id]);
+  const { rows: existingRows } = await query(
+    `SELECT id, code, name, capacity, location, type, status, notes, deleted_at
+     FROM sheds WHERE id = $1`,
+    [params.id]
+  );
   const existing = existingRows[0];
   if (!existing || existing.deleted_at) return notFound('Galpão não encontrado.');
 
@@ -80,7 +84,11 @@ export async function DELETE(request, { params: __p }) {
   const { session, error } = await requireSection(SECTIONS.PRODUCTION);
   if (error) return error;
 
-  const { rows: existingRows } = await query('SELECT * FROM sheds WHERE id = $1', [params.id]);
+  const { rows: existingRows } = await query(
+    `SELECT id, code, name, capacity, location, type, status, notes, deleted_at
+     FROM sheds WHERE id = $1`,
+    [params.id]
+  );
   const existing = existingRows[0];
   if (!existing || existing.deleted_at) return notFound('Galpão não encontrado.');
 

@@ -1,13 +1,12 @@
 # Backend — Granja Oliveira
 
-API do sistema: rotas `/api/*` (Next.js route handlers) · Prisma 5 + PostgreSQL ·
+API do sistema: rotas `/api/*` (Next.js route handlers) · node-postgres + PostgreSQL ·
 NextAuth (JWT) · RBAC · auditoria. Não possui telas.
 
 ```bash
 npm install
 cp .env.example .env          # DATABASE_URL, NEXTAUTH_URL, NEXTAUTH_SECRET…
-npx prisma generate
-npm run prisma:migrate        # 1ª vez (não há migrações versionadas ainda)
+npm run db:migrate            # cria o schema e aplica migrations pendentes
 npm run seed                  # 1º administrador
 npm run dev                   # http://localhost:3001
 ```
@@ -15,14 +14,14 @@ npm run dev                   # http://localhost:3001
 ## Estrutura
 
 ```
-app/api/              45 rotas (uma pasta por recurso: flocks, sheds, sales, dashboard…)
+app/api/              rotas por recurso (flocks, sheds, sales, dashboard…)
 lib/
 ├── auth.js           NextAuth: login, bloqueio de conta, auditoria de login
 ├── apiAuth.js        requireSection(): sessão + permissão em cada rota
 ├── rbac.js           FONTE DA VERDADE das permissões (front tem uma cópia)
-├── prisma.js         cliente do banco
+├── db.js             pool PostgreSQL e transações
 └── rateLimit.js      limite de tentativas (em memória)
-prisma/               schema.prisma e seed.js
+sql/                  schema.sql, seed.js e migrations numeradas
 middleware.js         protege /api/* (sessão, /api/users, rate limit de login)
 ```
 

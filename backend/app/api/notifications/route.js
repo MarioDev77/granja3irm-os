@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { can, SECTIONS } from '@/lib/rbac';
+import {
+  canViewNotificationCategory,
+  getLiveNotificationCategory,
+  getVisibleNotificationCategories,
+} from '@/lib/notificationAccess.mjs';
 
 // Prefixos usados nos ids sintéticos dos alertas "ao vivo" gerados abaixo —
 // usados no PATCH para diferenciá-los das notificações reais (persistidas
@@ -125,13 +130,18 @@ async function computeLiveAlerts(role) {
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
+  if (!session?.user?.role) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
 
+  const visibleCategories = getVisibleNotificationCategories(session.user.role, can);
   const [storedResult, live] = await Promise.all([
-    query(
+    visibleCategories.length
+      ? query(
       `SELECT id, severity, title, message, category, is_read AS "isRead", created_at AS "createdAt"
-       FROM notifications ORDER BY created_at DESC LIMIT 100`
-    ),
+       FROM notifications WHERE category = ANY($1::text[])
+       ORDER BY created_at DESC LIMIT 100`,
+      [visibleCategories]
+    )
+      : Promise.resolve({ rows: [] }),
     computeLiveAlerts(session.user.role),
   ]);
 
@@ -144,22 +154,42 @@ export async function GET() {
 
 export async function PATCH(request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
+  if (!session?.user?.role) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
 
-  const { id } = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Corpo da solicitação inválido.' }, { status: 400 });
+  }
+  const id = body?.id;
+  if (typeof id !== 'string' || id.length > 100) {
+    return NextResponse.json({ error: 'Notificação inválida.' }, { status: 400 });
+  }
 
   // Alertas "ao vivo" (id sintético, com um dos prefixos conhecidos) não
   // existem na tabela — não há o que marcar como lido, eles somem sozinhos
   // quando a situação é resolvida.
-  if (typeof id === 'string' && LIVE_ALERT_PREFIXES.some((prefix) => id.startsWith(prefix))) {
+  if (LIVE_ALERT_PREFIXES.some((prefix) => id.startsWith(prefix))) {
+    const category = getLiveNotificationCategory(id);
+    if (!canViewNotificationCategory(session.user.role, category, can)) {
+      return NextResponse.json({ error: 'Notificação não encontrada.' }, { status: 404 });
+    }
     return NextResponse.json({ message: 'Alerta calculado automaticamente; será removido quando resolvido.' });
   }
 
+  const visibleCategories = getVisibleNotificationCategories(session.user.role, can);
+  if (visibleCategories.length === 0) {
+    return NextResponse.json({ error: 'Notificação não encontrada.' }, { status: 404 });
+  }
+
   const { rows } = await query(
-    `UPDATE notifications SET is_read = true WHERE id = $1
+    `UPDATE notifications SET is_read = true WHERE id = $1 AND category = ANY($2::text[])
      RETURNING id, severity, title, message, category, is_read AS "isRead", created_at AS "createdAt"`,
-    [id]
+    [id, visibleCategories]
   );
+
+  if (!rows[0]) return NextResponse.json({ error: 'Notificação não encontrada.' }, { status: 404 });
 
   return NextResponse.json({ notification: rows[0] });
 }

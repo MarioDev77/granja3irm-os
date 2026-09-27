@@ -66,6 +66,9 @@ export async function PATCH(request, { params: __p }) {
     values.push(await bcrypt.hash(password, 12));
     i += 1;
   }
+  if (parsed.data.role || parsed.data.status || password) {
+    fields.push('auth_version = auth_version + 1');
+  }
   fields.push(`updated_at = now()`);
   values.push(id);
 

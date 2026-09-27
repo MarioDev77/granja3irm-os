@@ -8,6 +8,8 @@
 // ============================================================================
 
 const buckets = new Map();
+const MAX_BUCKETS = 10_000;
+let callsUntilSweep = 256;
 
 /**
  * @param {string} key identificador único (ex.: `login:IP`)
@@ -17,6 +19,16 @@ const buckets = new Map();
  */
 export function checkRateLimit(key, limit = 10, windowMs = 60_000) {
   const now = Date.now();
+  callsUntilSweep -= 1;
+  if (callsUntilSweep <= 0 || buckets.size >= MAX_BUCKETS) {
+    for (const [bucketKey, value] of buckets) {
+      if (value.resetAt <= now) buckets.delete(bucketKey);
+    }
+    callsUntilSweep = 256;
+    while (buckets.size >= MAX_BUCKETS) {
+      buckets.delete(buckets.keys().next().value);
+    }
+  }
   const bucket = buckets.get(key);
 
   if (!bucket || now > bucket.resetAt) {

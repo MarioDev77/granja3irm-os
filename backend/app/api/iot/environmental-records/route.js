@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import crypto from 'crypto';
 import { query, genId } from '@/lib/db';
+import { checkRateLimit } from '@/lib/rateLimit';
 
 // ============================================================================
 // Endpoint de ingestão para sensores IoT (seção 27 do escopo: "preparar
@@ -17,8 +19,8 @@ import { query, genId } from '@/lib/db';
 // ============================================================================
 
 const ingestSchema = z.object({
-  temperature: z.coerce.number().optional().nullable(),
-  humidity: z.coerce.number().optional().nullable(),
+  temperature: z.coerce.number().finite().min(-80).max(100).optional().nullable(),
+  humidity: z.coerce.number().finite().min(0).max(100).optional().nullable(),
 });
 
 export async function POST(request) {
@@ -27,7 +29,16 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Cabeçalho x-device-token ausente.' }, { status: 401 });
   }
 
-  const { rows: shedRows } = await query('SELECT * FROM sheds WHERE device_token = $1', [token]);
+  if (token.length > 256) {
+    return NextResponse.json({ error: 'Token de dispositivo inválido.' }, { status: 401 });
+  }
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const { allowed } = checkRateLimit(`iot:${tokenHash}`, 120, 60_000);
+  if (!allowed) {
+    return NextResponse.json({ error: 'Muitas medições. Tente novamente em instantes.' }, { status: 429 });
+  }
+
+  const { rows: shedRows } = await query('SELECT id, farm_id, name, deleted_at FROM sheds WHERE device_token_hash = $1', [tokenHash]);
   const shed = shedRows[0];
   if (!shed || shed.deleted_at) {
     return NextResponse.json({ error: 'Token de dispositivo inválido.' }, { status: 401 });

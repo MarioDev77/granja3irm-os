@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get('token') || '';
+  const [token, setToken] = useState('');
+
+  useEffect(() => {
+    const fragmentToken = new URLSearchParams(window.location.hash.slice(1)).get('token');
+    const queryToken = searchParams.get('token');
+    setToken(fragmentToken || queryToken || '');
+    if (fragmentToken || queryToken) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [searchParams]);
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

@@ -36,13 +36,13 @@ export async function middleware(request) {
     }
   }
 
-  if (PUBLIC_API_PATHS.some((p) => pathname.startsWith(p))) {
+  if (PUBLIC_API_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.next();
   }
 
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
 
-  if (!token) {
+  if (!token || token.invalidated || !token.id || !token.role) {
     return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 });
   }
 

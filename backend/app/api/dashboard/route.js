@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { can, SECTIONS } from '@/lib/rbac';
 import { requireSection } from '@/lib/apiAuth';
+import { getVisibleNotificationCategories } from '@/lib/notificationAccess.mjs';
 
 // Dados agregados do painel inicial (dashboard).
 //
@@ -76,7 +77,7 @@ async function getTopFlocks() {
   );
 }
 
-async function getDashboardData(includeFinance) {
+async function getDashboardData(includeFinance, visibleNotificationCategories) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
@@ -104,11 +105,21 @@ async function getDashboardData(includeFinance) {
     query('SELECT COUNT(*)::int AS count FROM users WHERE deleted_at IS NULL'),
     getWeeklySeries(),
     getTopFlocks(),
-    query(
+    visibleNotificationCategories.length
+      ? query(
       `SELECT id, severity, title, message, category, is_read AS "isRead", created_at AS "createdAt"
-       FROM notifications WHERE is_read = false ORDER BY created_at DESC LIMIT 4`
-    ),
-    query('SELECT COUNT(*)::int AS count FROM notifications WHERE is_read = false'),
+       FROM notifications
+       WHERE is_read = false AND category = ANY($1::text[])
+       ORDER BY created_at DESC LIMIT 4`,
+      [visibleNotificationCategories]
+    )
+      : Promise.resolve({ rows: [] }),
+    visibleNotificationCategories.length
+      ? query(
+          'SELECT COUNT(*)::int AS count FROM notifications WHERE is_read = false AND category = ANY($1::text[])',
+          [visibleNotificationCategories]
+        )
+      : Promise.resolve({ rows: [{ count: 0 }] }),
   ]);
 
   const shedCount = shedCountResult.rows[0].count;
@@ -214,7 +225,8 @@ export async function GET() {
   // Números financeiros só são calculados/enviados para perfis com acesso
   // à seção Financeiro (mesma regra que já existia na página).
   const includeFinance = can(session.user.role, SECTIONS.FINANCE);
-  const data = await getDashboardData(includeFinance);
+  const visibleNotificationCategories = getVisibleNotificationCategories(session.user.role, can);
+  const data = await getDashboardData(includeFinance, visibleNotificationCategories);
 
   return NextResponse.json(data);
 }

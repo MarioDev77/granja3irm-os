@@ -22,7 +22,8 @@ export async function POST(request, { params: __p }) {
   if (!shed || shed.deleted_at) return notFound('Galpão não encontrado.');
 
   const deviceToken = crypto.randomBytes(24).toString('hex');
-  await query('UPDATE sheds SET device_token = $1, updated_at = now() WHERE id = $2', [deviceToken, params.id]);
+  const deviceTokenHash = crypto.createHash('sha256').update(deviceToken).digest('hex');
+  await query('UPDATE sheds SET device_token_hash = $1, updated_at = now() WHERE id = $2', [deviceTokenHash, params.id]);
 
   await query(
     `INSERT INTO audit_logs (id, user_id, action, entity, entity_id, description)
@@ -45,7 +46,7 @@ export async function DELETE(request, { params: __p }) {
   const shed = rows[0];
   if (!shed || shed.deleted_at) return notFound('Galpão não encontrado.');
 
-  await query('UPDATE sheds SET device_token = NULL, updated_at = now() WHERE id = $1', [params.id]);
+  await query('UPDATE sheds SET device_token_hash = NULL, updated_at = now() WHERE id = $1', [params.id]);
 
   await query(
     `INSERT INTO audit_logs (id, user_id, action, entity, entity_id, description)

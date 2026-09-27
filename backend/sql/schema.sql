@@ -48,6 +48,7 @@ CREATE TABLE users (
   phone                 TEXT,
   failed_login_attempts INTEGER NOT NULL DEFAULT 0,
   locked_until          TIMESTAMPTZ,
+  auth_version          INTEGER NOT NULL DEFAULT 0,
   last_login_at         TIMESTAMPTZ,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -64,6 +65,7 @@ CREATE TABLE password_reset_tokens (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_password_reset_tokens_email ON password_reset_tokens (email);
+CREATE UNIQUE INDEX idx_password_reset_tokens_one_per_email ON password_reset_tokens (email);
 
 CREATE TABLE audit_logs (
   id            TEXT PRIMARY KEY,
@@ -108,12 +110,13 @@ CREATE TABLE sheds (
   type         TEXT,
   status       shed_status NOT NULL DEFAULT 'ACTIVE',
   notes        TEXT,
-  device_token TEXT UNIQUE,
+  device_token_hash TEXT,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   deleted_at   TIMESTAMPTZ,
   UNIQUE (farm_id, code)
 );
+CREATE UNIQUE INDEX idx_sheds_device_token_hash_unique ON sheds (device_token_hash);
 
 -- ---------------------------------------------------------------------------
 -- LOTES / AVES
